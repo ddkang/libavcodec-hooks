@@ -176,6 +176,8 @@ void ff_init_cabac_encoder(CABACContext *c, uint8_t *buf, int buf_size){
  * @param buf_size size of buf in bits
  */
 int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size){
+  fprintf(stderr, "init_cabac_decoder size: %d\n", buf_size);
+
     c->bytestream_start=
     c->bytestream= buf;
     c->bytestream_end= buf + buf_size;
