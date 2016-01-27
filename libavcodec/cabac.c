@@ -31,6 +31,7 @@
 #include "get_bits.h"
 #include "cabac.h"
 #include "cabac_functions.h"
+#include "coding_hooks.h"
 
 const uint8_t ff_h264_cabac_tables[512 + 4*2*64 + 4*64 + 63] = {
     9,8,7,7,6,6,6,6,5,5,5,5,5,5,5,5,
@@ -169,15 +170,14 @@ void ff_init_cabac_encoder(CABACContext *c, uint8_t *buf, int buf_size){
     c->range= 0x1FE;
     c->outstanding_count= 0;
     c->pb.bit_left++; //avoids firstBitFlag
+    c->coding_hooks = NULL;
 }
 
 /**
  *
  * @param buf_size size of buf in bits
  */
-int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size){
-  fprintf(stderr, "init_cabac_decoder size: %d\n", buf_size);
-
+int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size, struct AVCodecCodingHooks *coding_hooks){
     c->bytestream_start=
     c->bytestream= buf;
     c->bytestream_end= buf + buf_size;
@@ -201,6 +201,11 @@ int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size){
     c->range= 0x1FE;
     if ((c->range<<(CABAC_BITS+1)) < c->low)
         return AVERROR_INVALIDDATA;
+
+    c->coding_hooks = coding_hooks;
+    if (coding_hooks && coding_hooks->init_cabac_decoder) {
+      (*coding_hooks->init_cabac_decoder)(coding_hooks->opaque, c, buf, buf_size);
+    }
     return 0;
 }
 

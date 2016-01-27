@@ -31,6 +31,8 @@
 
 #include "put_bits.h"
 
+struct AVCodecCodingHooks;
+
 extern const uint8_t ff_h264_cabac_tables[512 + 4*2*64 + 4*64 + 63];
 #define H264_NORM_SHIFT_OFFSET 0
 #define H264_LPS_RANGE_OFFSET 512
@@ -48,9 +50,10 @@ typedef struct CABACContext{
     const uint8_t *bytestream;
     const uint8_t *bytestream_end;
     PutBitContext pb;
+    struct AVCodecCodingHooks *coding_hooks;
 }CABACContext;
 
 void ff_init_cabac_encoder(CABACContext *c, uint8_t *buf, int buf_size);
-int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size);
+int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size, struct AVCodecCodingHooks* coding_hooks);
 
 #endif /* AVCODEC_CABAC_H */

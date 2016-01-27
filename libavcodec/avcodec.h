@@ -1508,6 +1508,8 @@ enum AVSideDataParamChangeFlags {
  * @}
  */
 
+struct AVCodecCodingHooks;
+
 struct AVCodecInternal;
 
 enum AVFieldOrder {
@@ -3370,6 +3372,14 @@ typedef struct AVCodecContext {
      */
     AVPacketSideData *coded_side_data;
     int            nb_coded_side_data;
+
+    /**
+     * Collection of callbacks that can be used to hook deeply into the
+     * decoding stack of some codecs (currently only h264). Used for recoding.
+     * - encoding: unused
+     * - decoding: Set by user.
+     */
+    struct AVCodecCodingHooks *coding_hooks;
 
 } AVCodecContext;
 

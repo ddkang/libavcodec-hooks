@@ -258,6 +258,7 @@ static int update_context_from_user(AVCodecContext *dst, AVCodecContext *src)
 
     dst->draw_horiz_band= src->draw_horiz_band;
     dst->get_buffer2    = src->get_buffer2;
+    dst->coding_hooks   = src->coding_hooks;
 
     dst->opaque   = src->opaque;
     dst->debug    = src->debug;
