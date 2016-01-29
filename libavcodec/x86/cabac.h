@@ -178,6 +178,7 @@
 static av_always_inline int get_cabac_inline_x86(CABACContext *c,
                                                  uint8_t *const state)
 {
+//  static uint64_t _count = 0; if (_count++ % 1000000 == 0) av_log(NULL, AV_LOG_INFO, "get_cabac_inline_x86 %llu\n", _count);
     int bit, tmp;
 #ifdef BROKEN_RELOCATIONS
     void *tables;
@@ -213,6 +214,7 @@ static av_always_inline int get_cabac_inline_x86(CABACContext *c,
 #define get_cabac_bypass_sign get_cabac_bypass_sign_x86
 static av_always_inline int get_cabac_bypass_sign_x86(CABACContext *c, int val)
 {
+//  static uint64_t _count = 0; if (_count++ % 1000000 == 0) av_log(NULL, AV_LOG_INFO, "get_cabac_bypass_sign_x86 %llu\n", _count);
     x86_reg tmp;
     __asm__ volatile(
         "movl        %c6(%2), %k1       \n\t"
@@ -259,6 +261,7 @@ static av_always_inline int get_cabac_bypass_sign_x86(CABACContext *c, int val)
 #define get_cabac_bypass get_cabac_bypass_x86
 static av_always_inline int get_cabac_bypass_x86(CABACContext *c)
 {
+//  static uint64_t _count = 0; if (_count++ % 1000000 == 0) av_log(NULL, AV_LOG_INFO, "get_cabac_bypass_x86 %llu\n", _count);
     x86_reg tmp;
     int res;
     __asm__ volatile(

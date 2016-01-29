@@ -50,10 +50,13 @@ typedef struct CABACContext{
     const uint8_t *bytestream;
     const uint8_t *bytestream_end;
     PutBitContext pb;
-    struct AVCodecCodingHooks *coding_hooks;
+
+    struct CABACHooks *coding_hooks;
+    void *coding_hooks_opaque;
 }CABACContext;
 
 void ff_init_cabac_encoder(CABACContext *c, uint8_t *buf, int buf_size);
 int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size, struct AVCodecCodingHooks* coding_hooks);
+int ff_reset_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size);
 
 #endif /* AVCODEC_CABAC_H */

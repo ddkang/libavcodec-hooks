@@ -161,28 +161,36 @@ const uint8_t ff_h264_cabac_tables[512 + 4*2*64 + 4*64 + 63] = {
 
 /**
  *
- * @param buf_size size of buf in bits
+ * @param buf_size size of buf in bytes
  */
 void ff_init_cabac_encoder(CABACContext *c, uint8_t *buf, int buf_size){
+    c->coding_hooks = NULL;
+    c->coding_hooks_opaque = NULL;
     init_put_bits(&c->pb, buf, buf_size);
 
     c->low= 0;
     c->range= 0x1FE;
     c->outstanding_count= 0;
     c->pb.bit_left++; //avoids firstBitFlag
-    c->coding_hooks = NULL;
 }
 
 /**
  *
- * @param buf_size size of buf in bits
+ * @param buf_size size of buf in bytes
  */
 int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size, struct AVCodecCodingHooks *coding_hooks){
-    c->coding_hooks = coding_hooks;
-    if (coding_hooks && coding_hooks->init_cabac_decoder) {
-      (*coding_hooks->init_cabac_decoder)(coding_hooks->opaque, c, buf, buf_size);
+    if (coding_hooks && coding_hooks->cabac.init_decoder) {
+      c->coding_hooks = &coding_hooks->cabac;
+      c->coding_hooks_opaque = c->coding_hooks->init_decoder(coding_hooks->opaque, c, buf, buf_size);
+      return c->coding_hooks_opaque ? 0 : AVERROR_INVALIDDATA;
+    } else {
+      c->coding_hooks = NULL;
+      c->coding_hooks_opaque = NULL;
+      return ff_reset_cabac_decoder(c, buf, buf_size);
     }
+}
 
+int ff_reset_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size){
     c->bytestream_start=
     c->bytestream= buf;
     c->bytestream_end= buf + buf_size;
@@ -329,7 +337,7 @@ int main(void){
     b[i++] = av_lfg_get(&prng);
     b[i  ] = av_lfg_get(&prng);
 
-    ff_init_cabac_decoder(&c, b, SIZE);
+    ff_init_cabac_decoder(&c, b, SIZE, NULL);
 
     memset(state, 0, sizeof(state));
 

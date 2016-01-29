@@ -1,13 +1,26 @@
 /**
- * Table of callbacks used to hook deeply into the decoding stack of certain
- * codecs. Used for recoding.
+ * AVCodecCodingHooks: table of callbacks used to hook deeply into the decoding
+ * stack of certain codecs. Used for recoding.
  */
+
 struct CABACContext;
+
+typedef struct CABACHooks {
+  // Called by h264 decoder before decoding a CABAC-encoded block.
+  // Returns a new opaque pointer which will be passed to other CABAC hooks.
+  void* (*init_decoder)(void *opaque, struct CABACContext *c, const uint8_t *buf, int size);
+
+  int (*get_cabac)(void *opaque, uint8_t *state);
+  int (*get_cabac_bypass)(void *opaque);
+  int (*get_cabac_bypass_sign)(void *opaque, int val);
+  int (*get_cabac_terminate)(void *opaque);
+  const uint8_t* (*skip_bytes)(void *opaque, int n);
+} CABACHooks;
 
 typedef struct AVCodecCodingHooks {
   // Passed to callbacks.
   void *opaque;
 
-  // Called by h264 decoder before decoding a CABAC-encoded block.
-  void (*init_cabac_decoder)(void *opaque, struct CABACContext *c, const uint8_t *buf, int size);
+  // Hook into CABAC-encoded block decoding.
+  CABACHooks cabac;
 } AVCodecCodingHooks;
