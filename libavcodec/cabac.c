@@ -217,6 +217,28 @@ int ff_reset_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size){
     return 0;
 }
 
+
+int ff_get_cabac(CABACContext *c, uint8_t * const state) {
+  return get_cabac_inline(c, state);
+}
+
+int ff_get_cabac_bypass(CABACContext *c) {
+  return get_cabac_bypass(c);
+}
+
+int ff_get_cabac_bypass_sign(CABACContext *c, int val) {
+  return get_cabac_bypass_sign(c, val);
+}
+
+int ff_get_cabac_terminate(CABACContext *c) {
+  return get_cabac_terminate(c);
+}
+
+const uint8_t* ff_cabac_skip_bytes(CABACContext *c, int n) {
+  return skip_bytes(c, n);
+}
+
+
 #ifdef TEST
 #define SIZE 10240
 

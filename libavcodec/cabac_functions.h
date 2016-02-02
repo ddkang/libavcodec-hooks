@@ -30,6 +30,7 @@
 #include <stdint.h>
 
 #include "cabac.h"
+#include "coding_hooks.h"
 #include "config.h"
 
 #ifndef UNCHECKED_BITSTREAM_READER
@@ -105,7 +106,10 @@ static void refill2(CABACContext *c){
 
 #ifndef get_cabac_inline
 static av_always_inline int get_cabac_inline(CABACContext *c, uint8_t * const state){
-//  static uint64_t _count = 0; if (_count++ % 1000000 == 0) av_log(NULL, AV_LOG_INFO, "get_cabac_inline %llu\n", _count);
+    if (c->coding_hooks && c->coding_hooks->get) {
+      return c->coding_hooks->get(c->coding_hooks_opaque, state);
+    }
+
     int s = *state;
     int RangeLPS= ff_h264_lps_range[2*(c->range&0xC0) + s];
     int bit, lps_mask;
@@ -139,7 +143,10 @@ static int av_unused get_cabac(CABACContext *c, uint8_t * const state){
 
 #ifndef get_cabac_bypass
 static int av_unused get_cabac_bypass(CABACContext *c){
-//  static uint64_t _count = 0; if (_count++ % 1000000 == 0) av_log(NULL, AV_LOG_INFO, "get_cabac_bypass %llu\n", _count);
+    if (c->coding_hooks && c->coding_hooks->get_bypass) {
+      return c->coding_hooks->get_bypass(c->coding_hooks_opaque);
+    }
+
     int range;
     c->low += c->low;
 
@@ -158,7 +165,10 @@ static int av_unused get_cabac_bypass(CABACContext *c){
 
 #ifndef get_cabac_bypass_sign
 static av_always_inline int get_cabac_bypass_sign(CABACContext *c, int val){
-//  static uint64_t _count = 0; if (_count++ % 1000000 == 0) av_log(NULL, AV_LOG_INFO, "get_cabac_bypass_sign %llu\n", _count);
+    if (c->coding_hooks && c->coding_hooks->get_bypass_sign) {
+      return c->coding_hooks->get_bypass_sign(c->coding_hooks_opaque, val);
+    }
+
     int range, mask;
     c->low += c->low;
 
@@ -180,7 +190,10 @@ static av_always_inline int get_cabac_bypass_sign(CABACContext *c, int val){
  */
 #ifndef get_cabac_terminate
 static int av_unused get_cabac_terminate(CABACContext *c){
-//  static uint64_t _count = 0; if (_count++ % 1000000 == 0) av_log(NULL, AV_LOG_INFO, "get_cabac_terminate %llu\n", _count);
+    if (c->coding_hooks && c->coding_hooks->get_terminate) {
+      return c->coding_hooks->get_terminate(c->coding_hooks_opaque);
+    }
+
     c->range -= 2;
     if(c->low < c->range<<(CABAC_BITS+1)){
         renorm_cabac_decoder_once(c);
@@ -197,8 +210,10 @@ static int av_unused get_cabac_terminate(CABACContext *c){
  */
 #ifndef skip_bytes
 static av_unused const uint8_t* skip_bytes(CABACContext *c, int n) {
-  // XXX unused by h264.
-  static uint64_t _count = 0; if (_count++ % 1000000 == 0) av_log(NULL, AV_LOG_INFO, "skip_bytes %llu\n", _count);
+    if (c->coding_hooks && c->coding_hooks->skip_bytes) {
+      return c->coding_hooks->skip_bytes(c->coding_hooks_opaque, n);
+    }
+
     const uint8_t *ptr = c->bytestream;
 
     if (c->low & 0x1)

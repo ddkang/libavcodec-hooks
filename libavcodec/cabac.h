@@ -59,4 +59,10 @@ void ff_init_cabac_encoder(CABACContext *c, uint8_t *buf, int buf_size);
 int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size, struct AVCodecCodingHooks* coding_hooks);
 int ff_reset_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size);
 
+int ff_get_cabac(CABACContext *c, uint8_t * const state);
+int ff_get_cabac_bypass(CABACContext *c);
+int ff_get_cabac_bypass_sign(CABACContext *c, int val);
+int ff_get_cabac_terminate(CABACContext *c);
+const uint8_t* ff_cabac_skip_bytes(CABACContext *c, int n);
+
 #endif /* AVCODEC_CABAC_H */

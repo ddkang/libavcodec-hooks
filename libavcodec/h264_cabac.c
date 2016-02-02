@@ -43,8 +43,11 @@
 #include "golomb.h"
 #include "mpegutils.h"
 
+/* Inlined BRANCHLESS_GET_CABAC interferes with coding hooks. */
+#if 0
 #if ARCH_X86
 #include "x86/h264_i386.h"
+#endif
 #endif
 
 /* Cabac pre state table */
