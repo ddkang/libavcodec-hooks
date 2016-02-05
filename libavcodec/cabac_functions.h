@@ -165,8 +165,8 @@ static int av_unused get_cabac_bypass(CABACContext *c){
 
 #ifndef get_cabac_bypass_sign
 static av_always_inline int get_cabac_bypass_sign(CABACContext *c, int val){
-    if (c->coding_hooks && c->coding_hooks->get_bypass_sign) {
-      return c->coding_hooks->get_bypass_sign(c->coding_hooks_opaque, val);
+    if (c->coding_hooks && c->coding_hooks->get_bypass) {
+      return c->coding_hooks->get_bypass(c->coding_hooks_opaque) ? val : -val;
     }
 
     int range, mask;

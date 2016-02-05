@@ -15,7 +15,6 @@ typedef struct CABACHooks {
 
   int (*get)(void *opaque, uint8_t *state);
   int (*get_bypass)(void *opaque);
-  int (*get_bypass_sign)(void *opaque, int val);
   int (*get_terminate)(void *opaque);
   const uint8_t* (*skip_bytes)(void *opaque, int n);
 } CABACHooks;
