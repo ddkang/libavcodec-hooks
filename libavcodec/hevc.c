@@ -2382,7 +2382,7 @@ static int hls_decode_entry_wpp(AVCodecContext *avctxt, void *input_ctb_row, int
             return ret;
         ff_init_cabac_decoder(&lc->cc, s->data + s->sh.offset[(ctb_row)-1], s->sh.size[ctb_row - 1], avctxt->coding_hooks);
     }
-
+    avctxt->coding_hooks->cabac.set_hevc_context(avctxt->coding_hooks->opaque, s1);
     while(more_data && ctb_addr_ts < s->ps.sps->ctb_size) {
         int x_ctb = (ctb_addr_rs % s->ps.sps->ctb_width) << s->ps.sps->log2_ctb_size;
         int y_ctb = (ctb_addr_rs / s->ps.sps->ctb_width) << s->ps.sps->log2_ctb_size;
@@ -2432,6 +2432,7 @@ static int hls_decode_entry_wpp(AVCodecContext *avctxt, void *input_ctb_row, int
         }
     }
     ff_thread_report_progress2(s->avctx, ctb_row ,thread, SHIFT_CTB_WPP);
+    avctxt->coding_hooks->cabac.set_hevc_context(avctxt->coding_hooks->opaque, NULL);
 
     return 0;
 }
