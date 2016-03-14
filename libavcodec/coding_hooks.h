@@ -14,7 +14,7 @@ typedef struct CABACHooks {
   // Returns a new opaque pointer which will be passed to other CABAC hooks.
   void* (*init_decoder)(void *opaque, struct CABACContext *c, const uint8_t *buf, int size);
 
-  void (*set_h264_context)(void *opaque, const struct H264Context *c);
+  void (*set_h264_context)(void *opaque, const struct H264Context *c, const struct H264SliceContext*);
   void (*set_hevc_context)(void *opaque, const struct HEVCContext *c);
   int (*get)(void *opaque, uint8_t *state);
   int (*get_bypass)(void *opaque);
