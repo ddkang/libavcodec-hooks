@@ -2359,7 +2359,9 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
                               sl->gb.buffer + get_bits_count(&sl->gb) / 8,
                               (get_bits_left(&sl->gb) + 7) / 8,
                               avctx->coding_hooks);
-        avctx->coding_hooks->cabac.set_h264_context(avctx->coding_hooks->opaque, h);
+        if (avctx->coding_hooks) {
+            avctx->coding_hooks->cabac.set_h264_context(avctx->coding_hooks->opaque, h);
+        }
         if (ret < 0)
             return ret;
 
@@ -2436,7 +2438,9 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
                 return 0;
             }
         }
-        avctx->coding_hooks->cabac.set_h264_context(avctx->coding_hooks->opaque, NULL);
+        if (avctx->coding_hooks) {
+            avctx->coding_hooks->cabac.set_h264_context(avctx->coding_hooks->opaque, NULL);
+        }
     } else {
         for (;;) {
             int ret;
