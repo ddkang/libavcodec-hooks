@@ -2046,7 +2046,7 @@ decode_intra_mb:
         sl->intra_pcm_ptr = ptr;
         ptr += mb_size;
 
-        ret = ff_init_cabac_decoder(&sl->cabac, ptr, sl->cabac.bytestream_end - ptr, h->avctx->coding_hooks);
+        ret = ff_init_cabac_decoder(&sl->cabac, ptr, sl->cabac.bytestream_end - ptr, h->avctx->hooks);
         if (ret < 0)
             return ret;
 

@@ -2358,7 +2358,7 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
         ret = ff_init_cabac_decoder(&sl->cabac,
                               sl->gb.buffer + get_bits_count(&sl->gb) / 8,
                               (get_bits_left(&sl->gb) + 7) / 8,
-                              avctx->coding_hooks);
+                              avctx->hooks);
         if (ret < 0)
             return ret;
 

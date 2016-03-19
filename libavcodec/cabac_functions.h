@@ -213,7 +213,7 @@ static av_unused const uint8_t* skip_bytes(CABACContext *c, int n) {
     if (c->coding_hooks && c->coding_hooks->skip_bytes) {
       return c->coding_hooks->skip_bytes(c->coding_hooks_opaque, n);
     }
-
+    {
     const uint8_t *ptr = c->bytestream;
 
     if (c->low & 0x1)
@@ -228,6 +228,7 @@ static av_unused const uint8_t* skip_bytes(CABACContext *c, int n) {
         return NULL;
 
     return ptr;
+    }
 }
 #endif
 

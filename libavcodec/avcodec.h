@@ -1508,7 +1508,7 @@ enum AVSideDataParamChangeFlags {
  * @}
  */
 
-struct AVCodecCodingHooks;
+struct AVCodecHooks;
 
 struct AVCodecInternal;
 
@@ -3379,7 +3379,7 @@ typedef struct AVCodecContext {
      * - encoding: unused
      * - decoding: Set by user.
      */
-    struct AVCodecCodingHooks *coding_hooks;
+    struct AVCodecHooks *hooks;
 
 } AVCodecContext;
 

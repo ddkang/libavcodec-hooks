@@ -7,8 +7,10 @@
 #define AVCODEC_CODING_HOOKS_H
 
 struct CABACContext;
-
-typedef struct CABACHooks {
+typedef struct ModelHooks_ {
+  void (*frame_size)(void *opaque, int mb_width, int mb_height);
+} ModelHooks;
+typedef struct CABACCodingHooks {
   // Called by h264 decoder before decoding a CABAC-encoded block.
   // Returns a new opaque pointer which will be passed to other CABAC hooks.
   void* (*init_decoder)(void *opaque, struct CABACContext *c, const uint8_t *buf, int size);
@@ -17,14 +19,15 @@ typedef struct CABACHooks {
   int (*get_bypass)(void *opaque);
   int (*get_terminate)(void *opaque);
   const uint8_t* (*skip_bytes)(void *opaque, int n);
-} CABACHooks;
+} CABACCodingHooks;
 
-typedef struct AVCodecCodingHooks {
+typedef struct AVCodecHooks {
   // Passed to callbacks.
   void *opaque;
 
   // Hook into CABAC-encoded block decoding.
-  CABACHooks cabac;
-} AVCodecCodingHooks;
+  CABACCodingHooks coding_hooks;
+  ModelHooks model_hooks;
+} AVCodecHooks;
 
 #endif  // AVCODEC_CODING_HOOKS_H

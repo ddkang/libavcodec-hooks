@@ -182,7 +182,7 @@ static av_always_inline int get_cabac_inline_x86(CABACContext *c,
     if (c->coding_hooks && c->coding_hooks->get) {
       return c->coding_hooks->get(c->coding_hooks_opaque, state);
     }
-
+    {
     int bit, tmp;
 #ifdef BROKEN_RELOCATIONS
     void *tables;
@@ -211,6 +211,7 @@ static av_always_inline int get_cabac_inline_x86(CABACContext *c,
         : "%"REG_c, "memory"
     );
     return bit & 1;
+    }
 }
 #endif /* HAVE_7REGS && !BROKEN_COMPILER */
 
@@ -221,7 +222,7 @@ static av_always_inline int get_cabac_bypass_sign_x86(CABACContext *c, int val)
     if (c->coding_hooks && c->coding_hooks->get_bypass) {
       return c->coding_hooks->get_bypass(c->coding_hooks_opaque) ? val : -val;
     }
-
+    {
     x86_reg tmp;
     __asm__ volatile(
         "movl        %c6(%2), %k1       \n\t"
@@ -263,6 +264,7 @@ static av_always_inline int get_cabac_bypass_sign_x86(CABACContext *c, int val)
         : "%eax", "%edx", "memory"
     );
     return val;
+    }
 }
 
 #define get_cabac_bypass get_cabac_bypass_x86
@@ -271,7 +273,7 @@ static av_always_inline int get_cabac_bypass_x86(CABACContext *c)
     if (c->coding_hooks && c->coding_hooks->get_bypass) {
       return c->coding_hooks->get_bypass(c->coding_hooks_opaque);
     }
-
+    {
     x86_reg tmp;
     int res;
     __asm__ volatile(
@@ -307,6 +309,7 @@ static av_always_inline int get_cabac_bypass_x86(CABACContext *c)
         : "%eax", "%ecx", "memory"
     );
     return res;
+    }
 }
 #endif /* !BROKEN_COMPILER */
 

@@ -2380,7 +2380,7 @@ static int hls_decode_entry_wpp(AVCodecContext *avctxt, void *input_ctb_row, int
 
         if (ret < 0)
             return ret;
-        ff_init_cabac_decoder(&lc->cc, s->data + s->sh.offset[(ctb_row)-1], s->sh.size[ctb_row - 1], avctxt->coding_hooks);
+        ff_init_cabac_decoder(&lc->cc, s->data + s->sh.offset[(ctb_row)-1], s->sh.size[ctb_row - 1], avctxt->hooks);
     }
 
     while(more_data && ctb_addr_ts < s->ps.sps->ctb_size) {
