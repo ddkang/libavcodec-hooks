@@ -567,6 +567,10 @@ int ff_h264_update_thread_context(AVCodecContext *dst,
 
 static int h264_frame_start(H264Context *h)
 {
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.frame_spec(h->avctx->hooks->opaque,
+                                                h->frame_num, h->mb_width, h->mb_height);
+    }
     H264Picture *pic;
     int i, ret;
     const int pixel_shift = h->pixel_shift;
@@ -2353,7 +2357,6 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
     if (h->pps.cabac) {
         /* realign */
         align_get_bits(&sl->gb);
-
         /* init cabac */
         ret = ff_init_cabac_decoder(&sl->cabac,
                               sl->gb.buffer + get_bits_count(&sl->gb) / 8,
@@ -2373,6 +2376,9 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
                 er_add_slice(sl, sl->resync_mb_x, sl->resync_mb_y, sl->mb_x,
                              sl->mb_y, ER_MB_ERROR);
                 return AVERROR_INVALIDDATA;
+            }
+            if (avctx->hooks) {
+                avctx->hooks->model_hooks.mb_xy(avctx->hooks->opaque, sl->mb_x, sl->mb_y);
             }
 
             ret = ff_h264_decode_mb_cabac(h, sl);
@@ -2445,6 +2451,9 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
                 er_add_slice(sl, sl->resync_mb_x, sl->resync_mb_y, sl->mb_x,
                              sl->mb_y, ER_MB_ERROR);
                 return AVERROR_INVALIDDATA;
+            }
+            if (avctx->hooks) {
+                avctx->hooks->model_hooks.mb_xy(avctx->hooks->opaque, sl->mb_x, sl->mb_y);
             }
 
             ret = ff_h264_decode_mb_cavlc(h, sl);
