@@ -9,7 +9,9 @@
 
 typedef enum CodingType {
     PIP_UNKNOWN,
+    PIP_UNREACHABLE,
     PIP_SIGNIFICANCE_MAP,
+    PIP_SIGNIFICANCE_EOB,
     PIP_RESIDUALS,
 } CodingType;
 
