@@ -1681,6 +1681,7 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
         }
         const uint8_t *sig_off = significant_coeff_flag_offset_8x8[MB_FIELD(sl)];
 #ifdef decode_significance
+#error "Hasn't implemented decode_significance with coding_hooks"
         coeff_count = decode_significance_8x8(CC, significant_coeff_ctx_base, index,
                                                  last_coeff_ctx_base, sig_off);
     } else {
