@@ -7,12 +7,17 @@
 #define AVCODEC_CODING_HOOKS_H
 
 
+#define EACH_PIP_CODING_TYPE(fn) \
+    fn(PIP_UNKNOWN) \
+    fn(PIP_UNREACHABLE) \
+    fn(PIP_SIGNIFICANCE_MAP) \
+    fn(PIP_SIGNIFICANCE_EOB) \
+    fn(PIP_RESIDUALS)
+
+#define ITEM_COMMA(a) a,
+
 typedef enum CodingType {
-    PIP_UNKNOWN,
-    PIP_UNREACHABLE,
-    PIP_SIGNIFICANCE_MAP,
-    PIP_SIGNIFICANCE_EOB,
-    PIP_RESIDUALS,
+    EACH_PIP_CODING_TYPE(ITEM_COMMA)
 } CodingType;
 
 struct CABACContext;
