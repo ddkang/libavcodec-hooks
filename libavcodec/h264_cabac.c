@@ -1586,9 +1586,6 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
                                const uint32_t *qmul, int max_coeff,
                                int is_dc, int chroma422)
 {
-    if (h->avctx->hooks) {
-        h->avctx->hooks->model_hooks.begin_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, is_dc, chroma422);
-    }
     static const int significant_coeff_flag_offset[2][14] = {
       { 105+0, 105+15, 105+29, 105+44, 105+47, 402, 484+0, 484+15, 484+29, 660, 528+0, 528+15, 528+29, 718 },
       { 277+0, 277+15, 277+29, 277+44, 277+47, 436, 776+0, 776+15, 776+29, 675, 820+0, 820+15, 820+29, 733 }
@@ -1652,6 +1649,9 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
 #else
 #define CC &sl->cabac
 #endif
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, is_dc, chroma422);
+    }
 
     significant_coeff_ctx_base = sl->cabac_state
         + significant_coeff_flag_offset[MB_FIELD(sl)][cat];
