@@ -12,7 +12,8 @@
     fn(PIP_UNREACHABLE) \
     fn(PIP_SIGNIFICANCE_MAP) \
     fn(PIP_SIGNIFICANCE_EOB) \
-    fn(PIP_RESIDUALS)
+    fn(PIP_RESIDUALS) \
+    fn(PIP_SIGNIFICANCE_NZ)
 
 #define ITEM_COMMA(a) a,
 
