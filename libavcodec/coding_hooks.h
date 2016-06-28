@@ -38,7 +38,8 @@ typedef struct ModelHooks_ {
 typedef struct CABACCodingHooks {
   // Called by h264 decoder before decoding a CABAC-encoded block.
   // Returns a new opaque pointer which will be passed to other CABAC hooks.
-  void* (*init_decoder)(void *opaque, struct CABACContext *c, const uint8_t *buf, int size);
+  void* (*init_decoder)(void *opaque, struct CABACContext *c, const uint8_t *buf,
+                        uint8_t *state_start, int size);
 
   int (*get)(void *opaque, uint8_t *state);
   int (*get_bypass)(void *opaque);

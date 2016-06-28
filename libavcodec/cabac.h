@@ -53,10 +53,12 @@ typedef struct CABACContext{
 
     struct CABACCodingHooks *coding_hooks;
     void *coding_hooks_opaque;
+    uint8_t *state_start;
 }CABACContext;
 
 void ff_init_cabac_encoder(CABACContext *c, uint8_t *buf, int buf_size);
-int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size, struct AVCodecHooks* coding_hooks);
+int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, uint8_t *state_start,
+                          int buf_size, struct AVCodecHooks* coding_hooks);
 int ff_reset_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size);
 
 int ff_get_cabac(CABACContext *c, uint8_t * const state);

@@ -178,10 +178,12 @@ void ff_init_cabac_encoder(CABACContext *c, uint8_t *buf, int buf_size){
  *
  * @param buf_size size of buf in bytes
  */
-int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, int buf_size, struct AVCodecHooks *hooks){
+int ff_init_cabac_decoder(CABACContext *c, const uint8_t *buf, uint8_t *state_start,
+                          int buf_size, struct AVCodecHooks *hooks){
+    c->state_start = state_start;
     if (hooks && hooks->coding_hooks.init_decoder) {
       c->coding_hooks = &hooks->coding_hooks;
-      c->coding_hooks_opaque = c->coding_hooks->init_decoder(hooks->opaque, c, buf, buf_size);
+      c->coding_hooks_opaque = c->coding_hooks->init_decoder(hooks->opaque, c, buf, state_start, buf_size);
       return c->coding_hooks_opaque ? 0 : AVERROR_INVALIDDATA;
     } else {
       c->coding_hooks = NULL;
