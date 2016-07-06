@@ -34,6 +34,7 @@ typedef struct ModelHooks_ {
                      int cat, int scan8index, int max_coeff, int is_dc, int chroma422);
    void (*begin_coding_type)(void *opaque, CodingType pp_type, int param0, int param1, int param2);
    void (*end_coding_type)(void *opaque, CodingType pp_type);
+   void (*copy_coefficients)(void *opaque, int16_t *block, int max_coeff);
 } ModelHooks;
 typedef struct CABACCodingHooks {
   // Called by h264 decoder before decoding a CABAC-encoded block.

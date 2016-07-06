@@ -1721,6 +1721,7 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
         h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_SIGNIFICANCE_MAP);
     }
 
+    int16_t *unquant = (int16_t *) calloc(64 * 2, sizeof(int16_t));
 #define STORE_BLOCK(type) \
     do { \
         uint8_t *ctx = coeff_abs_level1_ctx[node_ctx] + abs_level_m1_ctx_base; \
@@ -1730,9 +1731,11 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
         if( get_cabac( CC, ctx ) == 0 ) { \
             node_ctx = coeff_abs_level_transition[0][node_ctx]; \
             if( is_dc ) { \
-                ((type*)block)[j] = get_cabac_bypass_sign( CC, -1); \
+                ((type*)unquant)[j] = ((type*)block)[j] = get_cabac_bypass_sign( CC, -1); \
             }else{ \
-                ((type*)block)[j] = (get_cabac_bypass_sign( CC, -qmul[j]) + 32) >> 6; \
+                type tmp = get_cabac_bypass_sign( CC, -qmul[j]); \
+                ((type*)block)[j] = (((type*)unquant)[j] + 32) >> 6; \
+                ((type*)unquant)[j] = (tmp > 0) - (tmp < 0); \
             } \
         } else { \
             int coeff_abs = 2; \
@@ -1757,9 +1760,11 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
             } \
 \
             if( is_dc ) { \
-                ((type*)block)[j] = get_cabac_bypass_sign( CC, -coeff_abs ); \
+                ((type*)unquant)[j] = ((type*)block)[j] = get_cabac_bypass_sign( CC, -coeff_abs ); \
             }else{ \
-                ((type*)block)[j] = ((int)(get_cabac_bypass_sign( CC, -coeff_abs ) * qmul[j] + 32)) >> 6; \
+                int tmp = get_cabac_bypass_sign( CC, -coeff_abs ); \
+                ((type*)unquant)[j] = (type) tmp; \
+                ((type*)block)[j] = (tmp * qmul[j] + 32) >> 6; \
             } \
         } \
     } while ( coeff_count );
@@ -1775,8 +1780,13 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
             sl->cabac.bytestream= cc.bytestream;
 #endif
     if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.copy_coefficients(h->avctx->hooks->opaque, unquant, max_coeff);
+    }
+    if (h->avctx->hooks) {
         h->avctx->hooks->model_hooks.end_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, is_dc, chroma422);
     }
+
+    free(unquant);
 }
 
 static av_noinline void decode_cabac_residual_dc_internal(const H264Context *h,
