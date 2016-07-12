@@ -1769,10 +1769,21 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
         } \
     } while ( coeff_count );
 
+    int backup_coeff_count = coeff_count;
     if (h->pixel_shift) {
         STORE_BLOCK(int32_t)
     } else {
         STORE_BLOCK(int16_t)
+    }
+    static int TOTAL = 2000000;
+    if (--TOTAL > 0) {
+      do {
+        int ind = index[--backup_coeff_count];
+        int j = scantable[ind];
+        // Does not work with interlacing.
+        //printf("%d,%d,%d,%d,%d,%d,%d,%d\n",
+        //       h->frame_num, sl->mb_x, sl->mb_y, n, ind, j, unquant[j], max_coeff);
+      } while (backup_coeff_count);
     }
 #ifdef CABAC_ON_STACK
             sl->cabac.range     = cc.range     ;
