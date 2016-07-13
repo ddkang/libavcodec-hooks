@@ -1387,14 +1387,9 @@ static int decode_cabac_mb_skip(const H264Context *h, H264SliceContext *sl,
     return ret;
 }
 
-static int decode_cabac_mb_intra4x4_pred_mode(const H264Context *h, H264SliceContext *sl, int pred_mode)
+static int decode_cabac_mb_intra4x4_pred_mode_helper(H264SliceContext *sl, int pred_mode)
 {
     int mode = 0;
-
-    if (h->avctx->hooks) {
-        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_INTRA4X4_PRED_MODE,
-                                                       0, 0, 0);
-    }
 
     if( get_cabac( &sl->cabac, &sl->cabac_state[68] ) )
         return pred_mode;
@@ -1403,12 +1398,22 @@ static int decode_cabac_mb_intra4x4_pred_mode(const H264Context *h, H264SliceCon
     mode += 2 * get_cabac( &sl->cabac, &sl->cabac_state[69] );
     mode += 4 * get_cabac( &sl->cabac, &sl->cabac_state[69] );
 
+    return mode + ( mode >= pred_mode );
+}
+static int decode_cabac_mb_intra4x4_pred_mode(const H264Context *h, H264SliceContext *sl, int pred_mode)
+{
+    int ret;
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_INTRA4X4_PRED_MODE,
+                                                       0, 0, 0);
+    }
+    ret = decode_cabac_mb_intra4x4_pred_mode_helper(sl, pred_mode);
     if (h->avctx->hooks) {
         h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_INTRA4X4_PRED_MODE);
     }
-
-    return mode + ( mode >= pred_mode );
+    return ret;
 }
+
 
 static int decode_cabac_mb_chroma_pre_mode_helper(const H264Context *h, H264SliceContext *sl)
 {
