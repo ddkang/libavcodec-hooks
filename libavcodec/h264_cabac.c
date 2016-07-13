@@ -1297,11 +1297,17 @@ static int decode_cabac_field_decoding_flag(const H264Context *h, H264SliceConte
     return get_cabac_noinline( &sl->cabac, &(sl->cabac_state+70)[ctx] );
 }
 
-static int decode_cabac_intra_mb_type(H264SliceContext *sl,
+static int decode_cabac_intra_mb_type(const H264Context *h, H264SliceContext *sl,
                                       int ctx_base, int intra_slice)
 {
     uint8_t *state= &sl->cabac_state[ctx_base];
     int mb_type;
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_INTRA_MB_TYPE,
+                                                       0, 0, 0);
+    }
+
 
     if(intra_slice){
         int ctx=0;
@@ -1326,6 +1332,10 @@ static int decode_cabac_intra_mb_type(H264SliceContext *sl,
         mb_type += 4 + 4 * get_cabac_noinline( &sl->cabac, &state[2+intra_slice] );
     mb_type += 2 * get_cabac_noinline( &sl->cabac, &state[3+intra_slice] );
     mb_type += 1 * get_cabac_noinline( &sl->cabac, &state[3+2*intra_slice] );
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_INTRA_MB_TYPE);
+    }
     return mb_type;
 }
 
@@ -1333,7 +1343,12 @@ static int decode_cabac_mb_skip(const H264Context *h, H264SliceContext *sl,
                                 int mb_x, int mb_y)
 {
     int mba_xy, mbb_xy;
-    int ctx = 0;
+    int ctx = 0, ret;
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_SKIP_FLAG,
+                                                       0, 0, 0);
+    }
 
     if (FRAME_MBAFF(h)) { //FIXME merge with the stuff in fill_caches?
         int mb_xy = mb_x + (mb_y&~1)*h->mb_stride;
@@ -1363,12 +1378,23 @@ static int decode_cabac_mb_skip(const H264Context *h, H264SliceContext *sl,
 
     if (sl->slice_type_nos == AV_PICTURE_TYPE_B)
         ctx += 13;
-    return get_cabac_noinline( &sl->cabac, &sl->cabac_state[11+ctx] );
+    ret = get_cabac_noinline( &sl->cabac, &sl->cabac_state[11+ctx] );
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_SKIP_FLAG);
+    }
+
+    return ret;
 }
 
-static int decode_cabac_mb_intra4x4_pred_mode(H264SliceContext *sl, int pred_mode)
+static int decode_cabac_mb_intra4x4_pred_mode(const H264Context *h, H264SliceContext *sl, int pred_mode)
 {
     int mode = 0;
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_INTRA4X4_PRED_MODE,
+                                                       0, 0, 0);
+    }
 
     if( get_cabac( &sl->cabac, &sl->cabac_state[68] ) )
         return pred_mode;
@@ -1377,10 +1403,14 @@ static int decode_cabac_mb_intra4x4_pred_mode(H264SliceContext *sl, int pred_mod
     mode += 2 * get_cabac( &sl->cabac, &sl->cabac_state[69] );
     mode += 4 * get_cabac( &sl->cabac, &sl->cabac_state[69] );
 
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_INTRA4X4_PRED_MODE);
+    }
+
     return mode + ( mode >= pred_mode );
 }
 
-static int decode_cabac_mb_chroma_pre_mode(const H264Context *h, H264SliceContext *sl)
+static int decode_cabac_mb_chroma_pre_mode_helper(const H264Context *h, H264SliceContext *sl)
 {
     const int mba_xy = sl->left_mb_xy[0];
     const int mbb_xy = sl->top_mb_xy;
@@ -1405,9 +1435,32 @@ static int decode_cabac_mb_chroma_pre_mode(const H264Context *h, H264SliceContex
         return 3;
 }
 
-static int decode_cabac_mb_cbp_luma(H264SliceContext *sl)
+static int decode_cabac_mb_chroma_pre_mode(const H264Context *h, H264SliceContext *sl)
+{
+    int ret;
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_CHROMA_PRE_MODE,
+                                                       0, 0, 0);
+    }
+
+    ret = decode_cabac_mb_chroma_pre_mode_helper(h, sl);
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_CHROMA_PRE_MODE);
+    }
+
+    return ret;
+}
+
+static int decode_cabac_mb_cbp_luma(const H264Context *h, H264SliceContext *sl)
 {
     int cbp_b, cbp_a, ctx, cbp = 0;
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_CBP_LUMA,
+                                                       0, 0, 0);
+    }
 
     cbp_a = sl->left_cbp;
     cbp_b = sl->top_cbp;
@@ -1420,9 +1473,13 @@ static int decode_cabac_mb_cbp_luma(H264SliceContext *sl)
     cbp += get_cabac_noinline(&sl->cabac, &sl->cabac_state[73 + ctx]) << 2;
     ctx = !(cbp   & 0x04) + 2 * !(cbp   & 0x02);
     cbp += get_cabac_noinline(&sl->cabac, &sl->cabac_state[73 + ctx]) << 3;
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_CBP_LUMA);
+    }
     return cbp;
 }
-static int decode_cabac_mb_cbp_chroma(H264SliceContext *sl)
+static int decode_cabac_mb_cbp_chroma_helper(H264SliceContext *sl)
 {
     int ctx;
     int cbp_a, cbp_b;
@@ -1441,8 +1498,21 @@ static int decode_cabac_mb_cbp_chroma(H264SliceContext *sl)
     if( cbp_b == 2 ) ctx += 2;
     return 1 + get_cabac_noinline( &sl->cabac, &sl->cabac_state[77 + ctx] );
 }
+static int decode_cabac_mb_cbp_chroma(const H264Context *h, H264SliceContext *sl)
+{
+    int ret;
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_CBP_CHROMA,
+                                                       0, 0, 0);
+    }
+    ret = decode_cabac_mb_cbp_chroma_helper(sl);
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_CBP_CHROMA);
+    }
+    return ret;
+}
 
-static int decode_cabac_p_mb_sub_type(H264SliceContext *sl)
+static int decode_cabac_p_mb_sub_type_helper(H264SliceContext *sl)
 {
     if( get_cabac( &sl->cabac, &sl->cabac_state[21] ) )
         return 0;   /* 8x8 */
@@ -1452,9 +1522,27 @@ static int decode_cabac_p_mb_sub_type(H264SliceContext *sl)
         return 2;   /* 4x8 */
     return 3;       /* 4x4 */
 }
-static int decode_cabac_b_mb_sub_type(H264SliceContext *sl)
+static int decode_cabac_p_mb_sub_type(const H264Context *h, H264SliceContext *sl) {
+    int ret;
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_P_MB_SUB_TYPE,
+                                                       0, 0, 0);
+    }
+    ret = decode_cabac_p_mb_sub_type_helper(sl);
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_P_MB_SUB_TYPE);
+    }
+    return ret;
+}
+static int decode_cabac_b_mb_sub_type(const H264Context *h, H264SliceContext *sl)
 {
     int type;
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_B_MB_SUB_TYPE,
+                                                       0, 0, 0);
+    }
+
     if( !get_cabac( &sl->cabac, &sl->cabac_state[36] ) )
         return 0;   /* B_Direct_8x8 */
     if( !get_cabac( &sl->cabac, &sl->cabac_state[37] ) )
@@ -1467,15 +1555,24 @@ static int decode_cabac_b_mb_sub_type(H264SliceContext *sl)
     }
     type += 2*get_cabac( &sl->cabac, &sl->cabac_state[39] );
     type +=   get_cabac( &sl->cabac, &sl->cabac_state[39] );
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_B_MB_SUB_TYPE);
+    }
     return type;
 }
 
-static int decode_cabac_mb_ref(H264SliceContext *sl, int list, int n)
+static int decode_cabac_mb_ref(const H264Context *h, H264SliceContext *sl, int list, int n)
 {
     int refa = sl->ref_cache[list][scan8[n] - 1];
     int refb = sl->ref_cache[list][scan8[n] - 8];
     int ref  = 0;
     int ctx  = 0;
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_REF,
+                                                       0, 0, 0);
+    }
 
     if (sl->slice_type_nos == AV_PICTURE_TYPE_B) {
         if( refa > 0 && !(sl->direct_cache[scan8[n] - 1]&(MB_TYPE_DIRECT2>>1)) )
@@ -1496,12 +1593,22 @@ static int decode_cabac_mb_ref(H264SliceContext *sl, int list, int n)
             return -1;
         }
     }
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_REF);
+    }
     return ref;
 }
 
-static int decode_cabac_mb_mvd(H264SliceContext *sl, int ctxbase, int amvd, int *mvda)
+static int decode_cabac_mb_mvd(const H264Context *h, H264SliceContext *sl,
+                               int ctxbase, int amvd, int *mvda)
 {
-    int mvd;
+    int mvd, ret;
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD,
+                                                       0, 0, 0);
+    }
 
     if(!get_cabac(&sl->cabac, &sl->cabac_state[ctxbase+((amvd-3)>>(INT_BIT-1))+((amvd-33)>>(INT_BIT-1))+2])){
 //    if(!get_cabac(&sl->cabac, &sl->cabac_state[ctxbase+(amvd>2)+(amvd>32)])){
@@ -1533,18 +1640,25 @@ static int decode_cabac_mb_mvd(H264SliceContext *sl, int ctxbase, int amvd, int 
         *mvda=mvd < 70 ? mvd : 70;
     }else
         *mvda=mvd;
-    return get_cabac_bypass_sign( &sl->cabac, -mvd );
+
+    ret = get_cabac_bypass_sign( &sl->cabac, -mvd );
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD);
+    }
+
+    return ret;
 }
 
-#define DECODE_CABAC_MB_MVD(sl, list,  n )\
+#define DECODE_CABAC_MB_MVD(h, sl, list,  n )\
 {\
     int amvd0 = sl->mvd_cache[list][scan8[n] - 1][0] +\
                 sl->mvd_cache[list][scan8[n] - 8][0];\
     int amvd1 = sl->mvd_cache[list][scan8[n] - 1][1] +\
                 sl->mvd_cache[list][scan8[n] - 8][1];\
 \
-    mx += decode_cabac_mb_mvd(sl, 40, amvd0, &mpx);\
-    my += decode_cabac_mb_mvd(sl, 47, amvd1, &mpy);\
+    mx += decode_cabac_mb_mvd(h, sl, 40, amvd0, &mpx);\
+    my += decode_cabac_mb_mvd(h, sl, 47, amvd1, &mpy);\
 }
 
 static av_always_inline int get_cabac_cbf_ctx(H264SliceContext *sl,
@@ -1770,11 +1884,21 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
     } while ( coeff_count );
 
     int backup_coeff_count = coeff_count;
+
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_RESIDUALS,
+                                                       0, 0, 0);
+    }
     if (h->pixel_shift) {
         STORE_BLOCK(int32_t)
     } else {
         STORE_BLOCK(int16_t)
     }
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_RESIDUALS);
+    }
+
     static int TOTAL = 2000000;
     if (--TOTAL > 0) {
       do {
@@ -2013,7 +2137,7 @@ int ff_h264_decode_mb_cabac(const H264Context *h, H264SliceContext *sl)
             if( bits < 8 ){
                 mb_type= bits + 3; /* B_Bi_16x16 through B_L1_L0_16x8 */
             }else if( bits == 13 ){
-                mb_type = decode_cabac_intra_mb_type(sl, 32, 0);
+                mb_type = decode_cabac_intra_mb_type(h, sl, 32, 0);
                 goto decode_intra_mb;
             }else if( bits == 14 ){
                 mb_type= 11; /* B_L1_L0_8x16 */
@@ -2039,11 +2163,11 @@ int ff_h264_decode_mb_cabac(const H264Context *h, H264SliceContext *sl)
             partition_count= p_mb_type_info[mb_type].partition_count;
             mb_type=         p_mb_type_info[mb_type].type;
         } else {
-            mb_type = decode_cabac_intra_mb_type(sl, 17, 0);
+            mb_type = decode_cabac_intra_mb_type(h, sl, 17, 0);
             goto decode_intra_mb;
         }
     } else {
-        mb_type = decode_cabac_intra_mb_type(sl, 3, 1);
+        mb_type = decode_cabac_intra_mb_type(h, sl, 3, 1);
         if (sl->slice_type == AV_PICTURE_TYPE_SI && mb_type)
             mb_type--;
         av_assert2(sl->slice_type_nos == AV_PICTURE_TYPE_I);
@@ -2104,13 +2228,13 @@ decode_intra_mb:
                 mb_type |= MB_TYPE_8x8DCT;
                 for( i = 0; i < 16; i+=4 ) {
                     int pred = pred_intra_mode(h, sl, i);
-                    int mode = decode_cabac_mb_intra4x4_pred_mode(sl, pred);
+                    int mode = decode_cabac_mb_intra4x4_pred_mode(h, sl, pred);
                     fill_rectangle(&sl->intra4x4_pred_mode_cache[scan8[i]], 2, 2, 8, mode, 1);
                 }
             } else {
                 for( i = 0; i < 16; i++ ) {
                     int pred = pred_intra_mode(h, sl, i);
-                    sl->intra4x4_pred_mode_cache[scan8[i]] = decode_cabac_mb_intra4x4_pred_mode(sl, pred);
+                    sl->intra4x4_pred_mode_cache[scan8[i]] = decode_cabac_mb_intra4x4_pred_mode(h, sl, pred);
 
                     ff_tlog(h->avctx, "i4x4 pred=%d mode=%d\n", pred,
                             sl->intra4x4_pred_mode_cache[scan8[i]]);
@@ -2137,7 +2261,7 @@ decode_intra_mb:
 
         if (sl->slice_type_nos == AV_PICTURE_TYPE_B ) {
             for( i = 0; i < 4; i++ ) {
-                sl->sub_mb_type[i] = decode_cabac_b_mb_sub_type(sl);
+                sl->sub_mb_type[i] = decode_cabac_b_mb_sub_type(h, sl);
                 sub_partition_count[i] = b_sub_mb_type_info[sl->sub_mb_type[i]].partition_count;
                 sl->sub_mb_type[i]     = b_sub_mb_type_info[sl->sub_mb_type[i]].type;
             }
@@ -2153,7 +2277,7 @@ decode_intra_mb:
             }
         } else {
             for( i = 0; i < 4; i++ ) {
-                sl->sub_mb_type[i] = decode_cabac_p_mb_sub_type(sl);
+                sl->sub_mb_type[i] = decode_cabac_p_mb_sub_type(h, sl);
                 sub_partition_count[i] = p_sub_mb_type_info[sl->sub_mb_type[i]].partition_count;
                 sl->sub_mb_type[i]     = p_sub_mb_type_info[sl->sub_mb_type[i]].type;
             }
@@ -2165,7 +2289,7 @@ decode_intra_mb:
                     if(IS_DIR(sl->sub_mb_type[i], 0, list)){
                         unsigned rc = sl->ref_count[list] << MB_MBAFF(sl);
                         if (rc > 1) {
-                            ref[list][i] = decode_cabac_mb_ref(sl, list, 4 * i);
+                            ref[list][i] = decode_cabac_mb_ref(h, sl, list, 4 * i);
                             if (ref[list][i] >= rc) {
                                 av_log(h->avctx, AV_LOG_ERROR, "Reference %d >= %d\n", ref[list][i], rc);
                                 return -1;
@@ -2201,7 +2325,7 @@ decode_intra_mb:
                         int16_t (* mv_cache)[2] = &sl->mv_cache[list][ scan8[index] ];
                         uint8_t (* mvd_cache)[2]= &sl->mvd_cache[list][ scan8[index] ];
                         pred_motion(h, sl, index, block_width, list, sl->ref_cache[list][ scan8[index] ], &mx, &my);
-                        DECODE_CABAC_MB_MVD(sl, list, index)
+                        DECODE_CABAC_MB_MVD(h, sl, list, index)
                         ff_tlog(h->avctx, "final mv:%d %d\n", mx, my);
 
                         if(IS_SUB_8X8(sub_mb_type)){
@@ -2252,7 +2376,7 @@ decode_intra_mb:
                     int ref;
                     unsigned rc = sl->ref_count[list] << MB_MBAFF(sl);
                     if (rc > 1) {
-                        ref= decode_cabac_mb_ref(sl, list, 0);
+                        ref= decode_cabac_mb_ref(h, sl, list, 0);
                         if (ref >= rc) {
                             av_log(h->avctx, AV_LOG_ERROR, "Reference %d >= %d\n", ref, rc);
                             return -1;
@@ -2266,7 +2390,7 @@ decode_intra_mb:
                 if(IS_DIR(mb_type, 0, list)){
                     int mx,my,mpx,mpy;
                     pred_motion(h, sl, 0, 4, list, sl->ref_cache[list][ scan8[0] ], &mx, &my);
-                    DECODE_CABAC_MB_MVD(sl, list, 0)
+                    DECODE_CABAC_MB_MVD(h, sl, list, 0)
                     ff_tlog(h->avctx, "final mv:%d %d\n", mx, my);
 
                     fill_rectangle(sl->mvd_cache[list][ scan8[0] ], 4, 4, 8, pack8to16(mpx,mpy), 2);
@@ -2281,7 +2405,7 @@ decode_intra_mb:
                             int ref;
                             unsigned rc = sl->ref_count[list] << MB_MBAFF(sl);
                             if (rc > 1) {
-                                ref= decode_cabac_mb_ref(sl, list, 8 * i);
+                                ref= decode_cabac_mb_ref(h, sl, list, 8 * i);
                                 if (ref >= rc) {
                                     av_log(h->avctx, AV_LOG_ERROR, "Reference %d >= %d\n", ref, rc);
                                     return -1;
@@ -2298,7 +2422,7 @@ decode_intra_mb:
                     if(IS_DIR(mb_type, i, list)){
                         int mx,my,mpx,mpy;
                         pred_16x8_motion(h, sl, 8*i, list, sl->ref_cache[list][scan8[0] + 16*i], &mx, &my);
-                        DECODE_CABAC_MB_MVD(sl, list, 8*i)
+                        DECODE_CABAC_MB_MVD(h, sl, list, 8*i)
                         ff_tlog(h->avctx, "final mv:%d %d\n", mx, my);
 
                         fill_rectangle(sl->mvd_cache[list][ scan8[0] + 16*i ], 4, 2, 8, pack8to16(mpx,mpy), 2);
@@ -2317,7 +2441,7 @@ decode_intra_mb:
                             int ref;
                             unsigned rc = sl->ref_count[list] << MB_MBAFF(sl);
                             if (rc > 1) {
-                                ref = decode_cabac_mb_ref(sl, list, 4 * i);
+                                ref = decode_cabac_mb_ref(h, sl, list, 4 * i);
                                 if (ref >= rc) {
                                     av_log(h->avctx, AV_LOG_ERROR, "Reference %d >= %d\n", ref, rc);
                                     return -1;
@@ -2334,7 +2458,7 @@ decode_intra_mb:
                     if(IS_DIR(mb_type, i, list)){
                         int mx,my,mpx,mpy;
                         pred_8x16_motion(h, sl, i*4, list, sl->ref_cache[list][ scan8[0] + 2*i ], &mx, &my);
-                        DECODE_CABAC_MB_MVD(sl, list, 4*i)
+                        DECODE_CABAC_MB_MVD(h, sl, list, 4*i)
 
                         ff_tlog(h->avctx, "final mv:%d %d\n", mx, my);
                         fill_rectangle(sl->mvd_cache[list][ scan8[0] + 2*i ], 2, 4, 8, pack8to16(mpx,mpy), 2);
@@ -2354,9 +2478,9 @@ decode_intra_mb:
    }
 
     if( !IS_INTRA16x16( mb_type ) ) {
-        cbp  = decode_cabac_mb_cbp_luma(sl);
+        cbp  = decode_cabac_mb_cbp_luma(h, sl);
         if(decode_chroma)
-            cbp |= decode_cabac_mb_cbp_chroma(sl) << 4;
+            cbp |= decode_cabac_mb_cbp_chroma(h, sl) << 4;
     } else {
         if (!decode_chroma && cbp>15) {
             av_log(h->avctx, AV_LOG_ERROR, "gray chroma\n");
