@@ -219,8 +219,8 @@ static av_always_inline int get_cabac_inline_x86(CABACContext *c,
 #define get_cabac_bypass_sign get_cabac_bypass_sign_x86
 static av_always_inline int get_cabac_bypass_sign_x86(CABACContext *c, int val)
 {
-    if (c->coding_hooks && c->coding_hooks->get_bypass) {
-      return c->coding_hooks->get_bypass(c->coding_hooks_opaque) ? val : -val;
+    if (c->coding_hooks && c->coding_hooks->get_sign_bypass) {
+      return c->coding_hooks->get_sign_bypass(c->coding_hooks_opaque) ? val : -val;
     }
     {
     x86_reg tmp;
