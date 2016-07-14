@@ -2477,11 +2477,14 @@ decode_intra_mb:
         }
     }
 
-   if( IS_INTER( mb_type ) ) {
-        h->chroma_pred_mode_table[mb_xy] = 0;
-        write_back_motion(h, sl, mb_type);
-   }
+    if( IS_INTER( mb_type ) ) {
+         h->chroma_pred_mode_table[mb_xy] = 0;
+         write_back_motion(h, sl, mb_type);
+    }
 
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+    }
     if( !IS_INTRA16x16( mb_type ) ) {
         cbp  = decode_cabac_mb_cbp_luma(h, sl);
         if(decode_chroma)
@@ -2497,6 +2500,10 @@ decode_intra_mb:
 
     if( dct8x8_allowed && (cbp&15) && !IS_INTRA( mb_type ) ) {
         mb_type |= MB_TYPE_8x8DCT * get_cabac_noinline(&sl->cabac, &sl->cabac_state[399 + sl->neighbor_transform_size]);
+    }
+    // Unfortunately the CBP needs this information above, so set it twice.
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
     }
 
     /* It would be better to do this in fill_decode_caches, but we don't know
