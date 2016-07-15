@@ -1405,7 +1405,7 @@ static int decode_cabac_mb_intra4x4_pred_mode(const H264Context *h, H264SliceCon
     int ret;
     if (h->avctx->hooks) {
         h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_INTRA4X4_PRED_MODE,
-                                                       0, 0, 0);
+                                                       0, pred_mode, 0);
     }
     ret = decode_cabac_mb_intra4x4_pred_mode_helper(sl, pred_mode);
     if (h->avctx->hooks) {
@@ -1846,6 +1846,10 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
         uint8_t *ctx = coeff_abs_level1_ctx[node_ctx] + abs_level_m1_ctx_base; \
  \
         int j= scantable[index[--coeff_count]]; \
+        if (h->avctx->hooks) { \
+            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_RESIDUALS, \
+                                                           0, j, 0); \
+        } \
  \
         if( get_cabac( CC, ctx ) == 0 ) { \
             node_ctx = coeff_abs_level_transition[0][node_ctx]; \
@@ -1886,22 +1890,18 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
                 ((type*)block)[j] = (tmp * qmul[j] + 32) >> 6; \
             } \
         } \
+        if (h->avctx->hooks) { \
+            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_RESIDUALS); \
+        } \
     } while ( coeff_count );
 
     int backup_coeff_count = coeff_count;
 
 
-    if (h->avctx->hooks) {
-        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_RESIDUALS,
-                                                       0, 0, 0);
-    }
     if (h->pixel_shift) {
         STORE_BLOCK(int32_t)
     } else {
         STORE_BLOCK(int16_t)
-    }
-    if (h->avctx->hooks) {
-        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_RESIDUALS);
     }
 
     static int TOTAL = 2000000;
