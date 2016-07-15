@@ -1612,7 +1612,7 @@ static int decode_cabac_mb_mvd(const H264Context *h, H264SliceContext *sl,
 
     if (h->avctx->hooks) {
         h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD,
-                                                       0, 0, 0);
+                                                       0, ctxbase == 40, 0);
     }
 
     if(!get_cabac(&sl->cabac, &sl->cabac_state[ctxbase+((amvd-3)>>(INT_BIT-1))+((amvd-33)>>(INT_BIT-1))+2])){
@@ -2225,6 +2225,11 @@ decode_intra_mb:
     }
 
     fill_decode_caches(h, sl, mb_type);
+
+    // Set here for MVD
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+    }
 
     if( IS_INTRA( mb_type ) ) {
         int i, pred_mode;
