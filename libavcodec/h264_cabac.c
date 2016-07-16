@@ -1980,7 +1980,15 @@ static av_always_inline void decode_cabac_residual_dc(const H264Context *h,
                                                       int max_coeff)
 {
     /* read coded block flag */
-    if( get_cabac( &sl->cabac, &sl->cabac_state[get_cabac_cbf_ctx(sl, cat, n, max_coeff, 1)]) == 0 ) {
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_CODED_BLOCK,
+                                                       0, 0, 0);
+    }
+    int flag = get_cabac( &sl->cabac, &sl->cabac_state[get_cabac_cbf_ctx(sl, cat, n, max_coeff, 1)]) == 0;
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_CODED_BLOCK);
+    }
+    if( flag ) {
         sl->non_zero_count_cache[scan8[n]] = 0;
         return;
     }
@@ -2010,7 +2018,16 @@ static av_always_inline void decode_cabac_residual_nondc(const H264Context *h,
                                                          int max_coeff)
 {
     /* read coded block flag */
-    if( (cat != 5 || CHROMA444(h)) && get_cabac( &sl->cabac, &sl->cabac_state[get_cabac_cbf_ctx(sl, cat, n, max_coeff, 0)]) == 0) {
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_CODED_BLOCK,
+                                                       0, 0, 0);
+    }
+    // Short circuit to prevent reading if the bit isn't there
+    int flag = (cat != 5 || CHROMA444(h)) && get_cabac( &sl->cabac, &sl->cabac_state[get_cabac_cbf_ctx(sl, cat, n, max_coeff, 0)]) == 0;
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_CODED_BLOCK);
+    }
+    if( flag ) {
         if( max_coeff == 64 ) {
             fill_rectangle(&sl->non_zero_count_cache[scan8[n]], 2, 2, 8, 0, 1);
         } else {

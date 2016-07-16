@@ -23,7 +23,8 @@
     fn(PIP_MB_CBP_CHROMA) \
     fn(PIP_P_MB_SUB_TYPE) \
     fn(PIP_B_MB_SUB_TYPE) \
-    fn(PIP_MB_REF)
+    fn(PIP_MB_REF) \
+    fn(PIP_CODED_BLOCK)
 
 #define ITEM_COMMA(a) a,
 
