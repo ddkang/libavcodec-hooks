@@ -1768,9 +1768,6 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
 #else
 #define CC &sl->cabac
 #endif
-    if (h->avctx->hooks) {
-        h->avctx->hooks->model_hooks.begin_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, is_dc, chroma422);
-    }
 
     significant_coeff_ctx_base = sl->cabac_state
         + significant_coeff_flag_offset[MB_FIELD(sl)][cat];
@@ -1922,9 +1919,6 @@ decode_cabac_residual_internal(const H264Context *h, H264SliceContext *sl,
     if (h->avctx->hooks) {
         h->avctx->hooks->model_hooks.copy_coefficients(h->avctx->hooks->opaque, unquant, max_coeff);
     }
-    if (h->avctx->hooks) {
-        h->avctx->hooks->model_hooks.end_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, is_dc, chroma422);
-    }
 
     free(unquant);
 }
@@ -1972,6 +1966,25 @@ static av_noinline void decode_cabac_residual_nondc_internal(const H264Context *
  * because it allows improved constant propagation into get_cabac_cbf_ctx,
  * as well as because most blocks have zero CBFs. */
 
+static av_always_inline void get_nz(H264SliceContext *sl,
+                                    int cat, int idx, int max_coeff,
+                                    int is_dc, int *nza, int *nzb)
+{
+    if( is_dc ) {
+        if( cat == 3 ) {
+            idx -= CHROMA_DC_BLOCK_INDEX;
+            *nza = (sl->left_cbp>>(6+idx))&0x01;
+            *nzb = (sl-> top_cbp>>(6+idx))&0x01;
+        } else {
+            idx -= LUMA_DC_BLOCK_INDEX;
+            *nza = sl->left_cbp&(0x100<<idx);
+            *nzb = sl-> top_cbp&(0x100<<idx);
+        }
+    } else {
+        *nza = sl->non_zero_count_cache[scan8[idx] - 1];
+        *nzb = sl->non_zero_count_cache[scan8[idx] - 8];
+    }
+}
 static av_always_inline void decode_cabac_residual_dc(const H264Context *h,
                                                       H264SliceContext *sl,
                                                       int16_t *block,
@@ -1979,10 +1992,15 @@ static av_always_inline void decode_cabac_residual_dc(const H264Context *h,
                                                       const uint8_t *scantable,
                                                       int max_coeff)
 {
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, 1, 0);
+    }
     /* read coded block flag */
     if (h->avctx->hooks) {
+        int nza, nzb;
+        get_nz(sl, cat, n, max_coeff, 1, &nza, &nzb);
         h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_CODED_BLOCK,
-                                                       0, 0, 0);
+                                                       0, nza, nzb);
     }
     int flag = get_cabac( &sl->cabac, &sl->cabac_state[get_cabac_cbf_ctx(sl, cat, n, max_coeff, 1)]) == 0;
     if (h->avctx->hooks) {
@@ -1990,9 +2008,12 @@ static av_always_inline void decode_cabac_residual_dc(const H264Context *h,
     }
     if( flag ) {
         sl->non_zero_count_cache[scan8[n]] = 0;
-        return;
+    } else {
+        decode_cabac_residual_dc_internal(h, sl, block, cat, n, scantable, max_coeff);
     }
-    decode_cabac_residual_dc_internal(h, sl, block, cat, n, scantable, max_coeff);
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, 1, 0);
+    }
 }
 
 static av_always_inline void
@@ -2017,10 +2038,15 @@ static av_always_inline void decode_cabac_residual_nondc(const H264Context *h,
                                                          const uint32_t *qmul,
                                                          int max_coeff)
 {
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, 0, 0);
+    }
     /* read coded block flag */
     if (h->avctx->hooks) {
+        int nza, nzb;
+        get_nz(sl, cat, n, max_coeff, 0, &nza, &nzb);
         h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_CODED_BLOCK,
-                                                       0, 0, 0);
+                                                       0, nza, nzb);
     }
     // Short circuit to prevent reading if the bit isn't there
     int flag = (cat != 5 || CHROMA444(h)) && get_cabac( &sl->cabac, &sl->cabac_state[get_cabac_cbf_ctx(sl, cat, n, max_coeff, 0)]) == 0;
@@ -2033,9 +2059,12 @@ static av_always_inline void decode_cabac_residual_nondc(const H264Context *h,
         } else {
             sl->non_zero_count_cache[scan8[n]] = 0;
         }
-        return;
+    } else {
+        decode_cabac_residual_nondc_internal(h, sl, block, cat, n, scantable, qmul, max_coeff);
     }
-    decode_cabac_residual_nondc_internal(h, sl, block, cat, n, scantable, qmul, max_coeff);
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, 0, 0);
+    }
 }
 
 static av_always_inline void decode_cabac_luma_residual(const H264Context *h, H264SliceContext *sl,
