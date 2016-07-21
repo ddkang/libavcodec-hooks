@@ -1305,7 +1305,7 @@ static int decode_cabac_intra_mb_type(const H264Context *h, H264SliceContext *sl
 
     if (h->avctx->hooks) {
         h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_INTRA_MB_TYPE,
-                                                       0, 0, 0);
+                                                       intra_slice, sl->left_type[LTOP], sl->top_type);
     }
 
 
