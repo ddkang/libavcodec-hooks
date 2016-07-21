@@ -1508,7 +1508,7 @@ static int decode_cabac_mb_cbp_chroma(const H264Context *h, H264SliceContext *sl
     int ret;
     if (h->avctx->hooks) {
         h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_CBP_CHROMA,
-                                                       0, 0, 0);
+                                                       0, sl->left_cbp, sl->top_cbp);
     }
     ret = decode_cabac_mb_cbp_chroma_helper(sl);
     if (h->avctx->hooks) {
