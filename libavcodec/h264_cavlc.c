@@ -36,6 +36,7 @@
 #include "golomb.h"
 #include "mpegutils.h"
 #include "libavutil/avassert.h"
+#include "coding_hooks.h"
 
 
 static const uint8_t golomb_to_inter_cbp_gray[16]={
@@ -452,6 +453,26 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
     int level[16];
     int zeros_left, coeff_token, total_coeff, i, trailing_ones, run_before;
 
+    int cat = 2;  // Most common??
+    const int is_dc = max_coeff <= 8 || n >= LUMA_DC_BLOCK_INDEX;
+    if (h->avctx->hooks) {
+        if (max_coeff > 63) {
+          cat = 5;
+        } else if (n > LUMA_DC_BLOCK_INDEX) {
+          cat = 3;
+        } else if (n == LUMA_DC_BLOCK_INDEX) {
+          cat = 0;
+        }else if (n < 16) {
+          if (max_coeff == 15)
+            cat = 1;
+          else
+            cat = 2;
+        } else {
+          cat = 4;
+        }
+        h->avctx->hooks->model_hooks.begin_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, is_dc, 0);
+    }
+
     //FIXME put trailing_onex into the context
 
     if(max_coeff <= 8){
@@ -630,6 +651,10 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
     if(zeros_left<0){
         av_log(h->avctx, AV_LOG_ERROR, "negative number of zero coeffs at %d %d\n", sl->mb_x, sl->mb_y);
         return -1;
+    }
+
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, is_dc, 0);
     }
 
     return 0;
@@ -1178,5 +1203,8 @@ decode_intra_mb:
     h->cur_pic.qscale_table[mb_xy] = sl->qscale;
     write_back_non_zero_count(h, sl);
 
+    /*if (sl->gb.cavlc_hooks && sl->gb.cavlc_hooks->terminate) {
+        sl->gb.cavlc_hooks->terminate(sl->gb.cavlc_hooks_opaque);
+    }*/
     return 0;
 }

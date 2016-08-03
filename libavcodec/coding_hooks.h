@@ -6,6 +6,8 @@
 #ifndef AVCODEC_CODING_HOOKS_H
 #define AVCODEC_CODING_HOOKS_H
 
+#include "libavcodec/get_bits.h"
+
 
 #define EACH_PIP_CODING_TYPE(fn) \
     fn(PIP_UNKNOWN) \
@@ -60,6 +62,13 @@ typedef struct CABACCodingHooks {
   int (*get_terminate)(void *opaque);
   const uint8_t* (*skip_bytes)(void *opaque, int n);
 } CABACCodingHooks;
+typedef struct CAVLCCodingHooks {
+  // Called by h264 decoder before decoding a CABAC-encoded block.
+  // Returns a new opaque pointer which will be passed to other CABAC hooks.
+  void* (*init_decoder)(void *opaque, GetBitContext *gb, const uint8_t *buf,
+                        uint8_t *state_start, int size);
+  void (*terminate)(void *opaque);
+} CAVLCCodingHooks;
 
 typedef struct AVCodecHooks {
   // Passed to callbacks.
@@ -67,6 +76,7 @@ typedef struct AVCodecHooks {
 
   // Hook into CABAC-encoded block decoding.
   CABACCodingHooks coding_hooks;
+  CAVLCCodingHooks cavlc_hooks;
   ModelHooks model_hooks;
 } AVCodecHooks;
 

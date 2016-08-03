@@ -2322,6 +2322,17 @@ static void er_add_slice(H264SliceContext *sl,
     }
 }
 
+static int ff_init_cavlc_recode(GetBitContext *gb, const uint8_t *buf,
+                                uint8_t *state_start, int buf_size, struct AVCodecHooks* hooks)
+{
+  if (hooks && hooks->cavlc_hooks.init_decoder) {
+    gb->cavlc_hooks = &hooks->cavlc_hooks;
+    gb->cavlc_hooks_opaque = gb->cavlc_hooks->init_decoder(hooks->opaque, gb, buf, state_start, buf_size);
+    return gb->cavlc_hooks_opaque ? 0 : AVERROR_INVALIDDATA;
+  }
+  return 0;
+}
+
 static int decode_slice(struct AVCodecContext *avctx, void *arg)
 {
     H264SliceContext *sl = arg;
@@ -2443,6 +2454,14 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
             }
         }
     } else {
+        ret = ff_init_cavlc_recode(&sl->gb,
+                                   sl->gb.buffer + get_bits_count(&sl->gb) / 8,
+                                   sl->cabac_state,
+                                   (get_bits_left(&sl->gb) + 7) / 8,
+                                   avctx->hooks);
+        if (ret < 0)
+            return ret;
+
         for (;;) {
             int ret;
 
@@ -2494,6 +2513,10 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
                     ff_tlog(h->avctx, "slice end %d %d\n",
                             get_bits_count(&sl->gb), sl->gb.size_in_bits);
 
+                    if (sl->gb.cavlc_hooks && sl->gb.cavlc_hooks->terminate) {
+                        sl->gb.cavlc_hooks->terminate(sl->gb.cavlc_hooks_opaque);
+                    }
+
                     if (   get_bits_left(&sl->gb) == 0
                         || get_bits_left(&sl->gb) > 0 && !(h->avctx->err_recognition & AV_EF_AGGRESSIVE)) {
                         er_add_slice(sl, sl->resync_mb_x, sl->resync_mb_y,
@@ -2512,6 +2535,10 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
             if (get_bits_left(&sl->gb) <= 0 && sl->mb_skip_run <= 0) {
                 ff_tlog(h->avctx, "slice end %d %d\n",
                         get_bits_count(&sl->gb), sl->gb.size_in_bits);
+
+                if (sl->gb.cavlc_hooks && sl->gb.cavlc_hooks->terminate) {
+                    sl->gb.cavlc_hooks->terminate(sl->gb.cavlc_hooks_opaque);
+                }
 
                 if (get_bits_left(&sl->gb) == 0) {
                     er_add_slice(sl, sl->resync_mb_x, sl->resync_mb_y,

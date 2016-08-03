@@ -56,6 +56,9 @@ typedef struct GetBitContext {
     int index;
     int size_in_bits;
     int size_in_bits_plus8;
+
+    struct CAVLCCodingHooks *cavlc_hooks;
+    void *cavlc_hooks_opaque;
 } GetBitContext;
 
 #define VLC_TYPE int16_t
@@ -257,6 +260,7 @@ static inline int get_sbits(GetBitContext *s, int n)
 /**
  * Read 1-25 bits.
  */
+// TODO: intercept
 static inline unsigned int get_bits(GetBitContext *s, int n)
 {
     register int tmp;
@@ -292,6 +296,7 @@ static inline unsigned int get_bits_le(GetBitContext *s, int n)
 /**
  * Show 1-25 bits.
  */
+// TODO: intercept
 static inline unsigned int show_bits(GetBitContext *s, int n)
 {
     register int tmp;
@@ -302,6 +307,7 @@ static inline unsigned int show_bits(GetBitContext *s, int n)
     return tmp;
 }
 
+// TODO: intercept
 static inline void skip_bits(GetBitContext *s, int n)
 {
     OPEN_READER(re, s);
@@ -309,6 +315,7 @@ static inline void skip_bits(GetBitContext *s, int n)
     CLOSE_READER(re, s);
 }
 
+// TODO: intercept
 static inline unsigned int get_bits1(GetBitContext *s)
 {
     unsigned int index = s->index;
@@ -325,7 +332,6 @@ static inline unsigned int get_bits1(GetBitContext *s)
 #endif
         index++;
     s->index = index;
-
     return result;
 }
 
@@ -334,6 +340,7 @@ static inline unsigned int show_bits1(GetBitContext *s)
     return show_bits(s, 1);
 }
 
+// TODO: intercept
 static inline void skip_bits1(GetBitContext *s)
 {
     skip_bits(s, 1);
@@ -342,6 +349,7 @@ static inline void skip_bits1(GetBitContext *s)
 /**
  * Read 0-32 bits.
  */
+// TODO: intercept
 static inline unsigned int get_bits_long(GetBitContext *s, int n)
 {
     if (!n) {
@@ -388,6 +396,7 @@ static inline int get_sbits_long(GetBitContext *s, int n)
 /**
  * Show 0-32 bits.
  */
+// TODO: intercept
 static inline unsigned int show_bits_long(GetBitContext *s, int n)
 {
     if (n <= MIN_CACHE_BITS) {
@@ -571,6 +580,7 @@ void ff_free_vlc(VLC *vlc);
  *                  read the longest vlc code
  *                  = (max_vlc_length + bits - 1) / bits
  */
+// TODO: intercept
 static av_always_inline int get_vlc2(GetBitContext *s, VLC_TYPE (*table)[2],
                                      int bits, int max_depth)
 {
