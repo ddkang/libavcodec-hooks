@@ -6,8 +6,6 @@
 #ifndef AVCODEC_CODING_HOOKS_H
 #define AVCODEC_CODING_HOOKS_H
 
-#include "libavcodec/get_bits.h"
-
 
 #define EACH_PIP_CODING_TYPE(fn) \
     fn(PIP_UNKNOWN) \
@@ -35,6 +33,7 @@ typedef enum CodingType {
 } CodingType;
 
 struct CABACContext;
+struct GetBitContext;
 
 
 typedef struct ModelHooks_ {
@@ -63,10 +62,24 @@ typedef struct CABACCodingHooks {
   const uint8_t* (*skip_bytes)(void *opaque, int n);
 } CABACCodingHooks;
 typedef struct CAVLCCodingHooks {
-  // Called by h264 decoder before decoding a CABAC-encoded block.
-  // Returns a new opaque pointer which will be passed to other CABAC hooks.
-  void* (*init_decoder)(void *opaque, GetBitContext *gb, const uint8_t *buf,
+  // Called by h264 decoder before decoding a CAVLC-encoded block.
+  // Returns a new opaque pointer which will be passed to other CAVLC hooks.
+  // Alright, how do I deal with this void pointer. It's actually GetBitContext
+  void* (*init_decoder)(void *opaque, void* gb, const uint8_t *buf,
                         uint8_t *state_start, int size);
+  // Golomb hooks
+  int (*get_ue_golomb)(void *opaque);
+  int (*get_ue_golomb_31)(void *opaque);
+  unsigned (*get_ue_golomb_long)(void *opaque);
+  int (*get_se_golomb)(void *opaque);
+  // Get bit hooks
+  unsigned int (*get_bits)(void *opaque, int n);
+  unsigned int (*get_bits1)(void *opaque);
+  // The type here is actually VLC_TYPE
+  int (*get_vlc2)(void *opaque, int16_t (*table)[2], int bits, int max_depth);
+  int (*get_level_prefix)(void *opaque);
+  unsigned int (*show_bits)(void *opaque, int n);
+  void (*skip_bits)(void *opaque, int n);
   void (*terminate)(void *opaque);
 } CAVLCCodingHooks;
 

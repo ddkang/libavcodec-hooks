@@ -33,6 +33,7 @@
 #include "libavutil/log.h"
 #include "libavutil/avassert.h"
 #include "mathops.h"
+#include "libavcodec/coding_hooks.h"
 
 /*
  * Safe bitstream reading:
@@ -50,6 +51,8 @@
 #ifndef UNCHECKED_BITSTREAM_READER
 #define UNCHECKED_BITSTREAM_READER !CONFIG_SAFE_BITSTREAM_READER
 #endif
+
+struct CAVLCCodingHooks;
 
 typedef struct GetBitContext {
     const uint8_t *buffer, *buffer_end;
@@ -260,9 +263,12 @@ static inline int get_sbits(GetBitContext *s, int n)
 /**
  * Read 1-25 bits.
  */
-// TODO: intercept
 static inline unsigned int get_bits(GetBitContext *s, int n)
 {
+    if (s->cavlc_hooks && s->cavlc_hooks->get_bits) {
+        return s->cavlc_hooks->get_bits(s->cavlc_hooks_opaque, n);
+    }
+    {
     register int tmp;
     OPEN_READER(re, s);
     av_assert2(n>0 && n<=25);
@@ -271,6 +277,7 @@ static inline unsigned int get_bits(GetBitContext *s, int n)
     LAST_SKIP_BITS(re, s, n);
     CLOSE_READER(re, s);
     return tmp;
+    }
 }
 
 /**
@@ -296,28 +303,40 @@ static inline unsigned int get_bits_le(GetBitContext *s, int n)
 /**
  * Show 1-25 bits.
  */
-// TODO: intercept
 static inline unsigned int show_bits(GetBitContext *s, int n)
 {
+    if (s->cavlc_hooks && s->cavlc_hooks->show_bits)
+    {
+        return s->cavlc_hooks->show_bits(s->cavlc_hooks_opaque, n);
+    }
+    {
     register int tmp;
     OPEN_READER_NOSIZE(re, s);
     av_assert2(n>0 && n<=25);
     UPDATE_CACHE(re, s);
     tmp = SHOW_UBITS(re, s, n);
     return tmp;
+    }
 }
 
-// TODO: intercept
 static inline void skip_bits(GetBitContext *s, int n)
 {
+    if (s->cavlc_hooks && s->cavlc_hooks->skip_bits) {
+        return s->cavlc_hooks->skip_bits(s->cavlc_hooks_opaque, n);
+    }
+    {
     OPEN_READER(re, s);
     LAST_SKIP_BITS(re, s, n);
     CLOSE_READER(re, s);
+    }
 }
 
-// TODO: intercept
 static inline unsigned int get_bits1(GetBitContext *s)
 {
+    if (s->cavlc_hooks && s->cavlc_hooks->get_bits1) {
+        return s->cavlc_hooks->get_bits1(s->cavlc_hooks_opaque);
+    }
+    {
     unsigned int index = s->index;
     uint8_t result     = s->buffer[index >> 3];
 #ifdef BITSTREAM_READER_LE
@@ -333,6 +352,7 @@ static inline unsigned int get_bits1(GetBitContext *s)
         index++;
     s->index = index;
     return result;
+    }
 }
 
 static inline unsigned int show_bits1(GetBitContext *s)
@@ -340,7 +360,7 @@ static inline unsigned int show_bits1(GetBitContext *s)
     return show_bits(s, 1);
 }
 
-// TODO: intercept
+// TODO: intercept... maybe. skip_bits is already intercepted
 static inline void skip_bits1(GetBitContext *s)
 {
     skip_bits(s, 1);
@@ -443,6 +463,8 @@ static inline int init_get_bits(GetBitContext *s, const uint8_t *buffer,
     s->size_in_bits_plus8 = bit_size + 8;
     s->buffer_end         = buffer + buffer_size;
     s->index              = 0;
+    s->cavlc_hooks        = NULL;
+    s->cavlc_hooks_opaque = NULL;
 
     return ret;
 }
@@ -580,10 +602,13 @@ void ff_free_vlc(VLC *vlc);
  *                  read the longest vlc code
  *                  = (max_vlc_length + bits - 1) / bits
  */
-// TODO: intercept
 static av_always_inline int get_vlc2(GetBitContext *s, VLC_TYPE (*table)[2],
                                      int bits, int max_depth)
 {
+    if (s->cavlc_hooks && s->cavlc_hooks->get_vlc2) {
+        return s->cavlc_hooks->get_vlc2(s->cavlc_hooks_opaque, table, bits, max_depth);
+    }
+    {
     int code;
 
     OPEN_READER(re, s);
@@ -594,6 +619,7 @@ static av_always_inline int get_vlc2(GetBitContext *s, VLC_TYPE (*table)[2],
     CLOSE_READER(re, s);
 
     return code;
+    }
 }
 
 static inline int decode012(GetBitContext *gb)

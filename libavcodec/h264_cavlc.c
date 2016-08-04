@@ -38,6 +38,7 @@
 #include "libavutil/avassert.h"
 #include "coding_hooks.h"
 
+#include "libavcodec/h264_cavlc.h"
 
 static const uint8_t golomb_to_inter_cbp_gray[16]={
  0, 1, 2, 4, 8, 3, 5,10,12,15, 7,11,13,14, 6, 9,
@@ -414,28 +415,6 @@ av_cold void ff_h264_decode_init_vlc(void){
     }
 }
 
-/**
- *
- */
-static inline int get_level_prefix(GetBitContext *gb){
-    unsigned int buf;
-    int log;
-
-    OPEN_READER(re, gb);
-    UPDATE_CACHE(re, gb);
-    buf=GET_CACHE(re, gb);
-
-    log= 32 - av_log2(buf);
-#ifdef TRACE
-    print_bin(buf>>(32-log), log);
-    av_log(NULL, AV_LOG_DEBUG, "%5d %2d %3d lpr @%5d in %s get_level_prefix\n", buf>>(32-log), log, log-1, get_bits_count(gb), __FILE__);
-#endif
-
-    LAST_SKIP_BITS(re, gb, log);
-    CLOSE_READER(re, gb);
-
-    return log-1;
-}
 
 /**
  * Decode a residual block.

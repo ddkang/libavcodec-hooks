@@ -34,6 +34,7 @@
 
 #include "get_bits.h"
 #include "put_bits.h"
+#include "coding_hooks.h"
 
 #define INVALID_VLC           0x80000000
 
@@ -52,6 +53,10 @@ extern const uint8_t ff_interleaved_dirac_golomb_vlc_code[256];
  */
 static inline int get_ue_golomb(GetBitContext *gb)
 {
+    if (gb->cavlc_hooks && gb->cavlc_hooks->get_ue_golomb) {
+        return gb->cavlc_hooks->get_ue_golomb(gb->cavlc_hooks_opaque);
+    }
+    {
     unsigned int buf;
 
     OPEN_READER(re, gb);
@@ -77,6 +82,7 @@ static inline int get_ue_golomb(GetBitContext *gb)
 
         return buf;
     }
+    }
 }
 
 /**
@@ -84,6 +90,10 @@ static inline int get_ue_golomb(GetBitContext *gb)
  */
 static inline unsigned get_ue_golomb_long(GetBitContext *gb)
 {
+    if (gb->cavlc_hooks && gb->cavlc_hooks->get_ue_golomb_long) {
+        return gb->cavlc_hooks->get_ue_golomb_long(gb->cavlc_hooks_opaque);
+    }
+    {
     unsigned buf, log;
 
     buf = show_bits_long(gb, 32);
@@ -91,6 +101,7 @@ static inline unsigned get_ue_golomb_long(GetBitContext *gb)
     skip_bits_long(gb, log);
 
     return get_bits_long(gb, log + 1) - 1;
+    }
 }
 
 /**
@@ -99,6 +110,10 @@ static inline unsigned get_ue_golomb_long(GetBitContext *gb)
  */
 static inline int get_ue_golomb_31(GetBitContext *gb)
 {
+    if (gb->cavlc_hooks && gb->cavlc_hooks->get_ue_golomb_31) {
+        return gb->cavlc_hooks->get_ue_golomb_31(gb->cavlc_hooks_opaque);
+    }
+    {
     unsigned int buf;
 
     OPEN_READER(re, gb);
@@ -110,6 +125,7 @@ static inline int get_ue_golomb_31(GetBitContext *gb)
     CLOSE_READER(re, gb);
 
     return ff_ue_golomb_vlc_code[buf];
+    }
 }
 
 static inline unsigned svq3_get_ue_golomb(GetBitContext *gb)
@@ -182,6 +198,10 @@ static inline int get_te_golomb(GetBitContext *gb, int range)
  */
 static inline int get_se_golomb(GetBitContext *gb)
 {
+    if (gb->cavlc_hooks && gb->cavlc_hooks->get_se_golomb) {
+        return gb->cavlc_hooks->get_se_golomb(gb->cavlc_hooks_opaque);
+    }
+    {
     unsigned int buf;
 
     OPEN_READER(re, gb);
@@ -209,6 +229,7 @@ static inline int get_se_golomb(GetBitContext *gb)
         buf  = ((buf >> 1) ^ sign) - sign;
 
         return buf;
+    }
     }
 }
 
