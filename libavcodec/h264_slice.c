@@ -2455,9 +2455,9 @@ static int decode_slice(struct AVCodecContext *avctx, void *arg)
         }
     } else {
         ret = ff_init_cavlc_recode(&sl->gb,
-                                   sl->gb.buffer + get_bits_count(&sl->gb) / 8,
+                                   sl->gb.buffer + (get_bits_count(&sl->gb) + 7) / 8,
                                    sl->cabac_state,
-                                   (get_bits_left(&sl->gb) + 7) / 8,
+                                   (get_bits_left(&sl->gb)) / 8,
                                    avctx->hooks);
         if (ret < 0)
             return ret;

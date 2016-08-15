@@ -92,6 +92,8 @@ static inline unsigned get_ue_golomb_long(GetBitContext *gb)
 {
     if (gb->cavlc_hooks && gb->cavlc_hooks->get_ue_golomb_long) {
         return gb->cavlc_hooks->get_ue_golomb_long(gb->cavlc_hooks_opaque);
+    } else {
+        return get_ue_golomb(gb);
     }
     {
     unsigned buf, log;
