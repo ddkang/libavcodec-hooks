@@ -270,9 +270,6 @@ static VLC run7_vlc;
 static VLC_TYPE run7_vlc_table[96][2];
 static const int run7_vlc_table_size = 96;
 
-#define LEVEL_TAB_BITS 8
-static int8_t cavlc_level_tab[7][1<<LEVEL_TAB_BITS][2];
-
 #define CHROMA_DC_COEFF_TOKEN_VLC_BITS 8
 #define CHROMA422_DC_COEFF_TOKEN_VLC_BITS 13
 #define COEFF_TOKEN_VLC_BITS           8
@@ -486,7 +483,7 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
     ff_tlog(h->avctx, "trailing:%d, total:%d\n", trailing_ones, total_coeff);
     av_assert2(total_coeff<=16);
 
-    i = show_bits(gb, 3);
+    i = show_bits(gb, trailing_ones) << (3 - trailing_ones);
     skip_bits(gb, trailing_ones);
     level[0] = 1-((i&4)>>1);
     level[1] = 1-((i&2)   );
@@ -495,7 +492,7 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
     if(trailing_ones<total_coeff) {
         int mask, prefix;
         int suffix_length = total_coeff > 10 & trailing_ones < 3;
-        int bitsi= show_bits(gb, LEVEL_TAB_BITS);
+        int bitsi= recode_show_bits(gb, cavlc_level_tab[suffix_length], LEVEL_TAB_BITS);
         int level_code= cavlc_level_tab[suffix_length][bitsi][0];
 
         skip_bits(gb, cavlc_level_tab[suffix_length][bitsi][1]);
@@ -542,7 +539,7 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
         //remaining coefficients have suffix_length > 0
         for(i=trailing_ones+1;i<total_coeff;i++) {
             static const unsigned int suffix_limit[7] = {0,3,6,12,24,48,INT_MAX };
-            int bitsi= show_bits(gb, LEVEL_TAB_BITS);
+            int bitsi= recode_show_bits(gb, cavlc_level_tab[suffix_length], LEVEL_TAB_BITS);
             level_code= cavlc_level_tab[suffix_length][bitsi][0];
 
             skip_bits(gb, cavlc_level_tab[suffix_length][bitsi][1]);

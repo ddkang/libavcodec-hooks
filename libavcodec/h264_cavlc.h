@@ -5,9 +5,13 @@
 #include "libavutil/avassert.h"
 #include "coding_hooks.h"
 
-/**
- *
- */
+
+#ifndef AVCODEC_H264_CAVLC_H
+#define AVCODEC_H264_CAVLC_H
+
+#define LEVEL_TAB_BITS 8
+static int8_t cavlc_level_tab[7][1<<LEVEL_TAB_BITS][2];
+
 static inline int get_level_prefix(GetBitContext *gb){
     if (gb->cavlc_hooks && gb->cavlc_hooks->get_level_prefix) {
         return gb->cavlc_hooks->get_level_prefix(gb->cavlc_hooks_opaque);
@@ -32,3 +36,5 @@ static inline int get_level_prefix(GetBitContext *gb){
     return log-1;
     }
 }
+
+#endif /* AVCODEC_H264_CAVLC_H */

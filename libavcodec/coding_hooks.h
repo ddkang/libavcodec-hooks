@@ -79,6 +79,7 @@ typedef struct CAVLCCodingHooks {
   int (*get_vlc2)(void *opaque, int16_t (*table)[2], int bits, int max_depth);
   int (*get_level_prefix)(void *opaque);
   unsigned int (*show_bits)(void *opaque, int n);
+  unsigned int (*recode_show_bits)(void *opaque, const int8_t table[256][2], int n);
   void (*skip_bits)(void *opaque, int n);
   void (*terminate)(void *opaque);
 } CAVLCCodingHooks;

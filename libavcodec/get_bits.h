@@ -318,6 +318,14 @@ static inline unsigned int show_bits(GetBitContext *s, int n)
     return tmp;
     }
 }
+static inline unsigned int recode_show_bits(GetBitContext *s, const int8_t table[256][2], int n)
+{
+    if (s->cavlc_hooks && s->cavlc_hooks->recode_show_bits) {
+        return s->cavlc_hooks->recode_show_bits(s->cavlc_hooks_opaque, table, n);
+    } else {
+        return show_bits(s, n);
+    }
+}
 
 static inline void skip_bits(GetBitContext *s, int n)
 {
