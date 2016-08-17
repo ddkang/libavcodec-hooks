@@ -30,6 +30,7 @@
 
 typedef enum CodingType {
     EACH_PIP_CODING_TYPE(ITEM_COMMA)
+    PIP_NUM_TYPES,
 } CodingType;
 
 struct CABACContext;
