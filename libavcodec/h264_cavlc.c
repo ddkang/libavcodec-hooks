@@ -722,8 +722,16 @@ int ff_h264_decode_mb_cavlc(const H264Context *h, H264SliceContext *sl)
     cbp = 0; /* avoid warning. FIXME: find a solution without slowing
                 down the code */
     if (sl->slice_type_nos != AV_PICTURE_TYPE_I) {
-        if (sl->mb_skip_run == -1)
+        if (sl->mb_skip_run == -1) {
+            if (h->avctx->hooks) {
+                h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque,
+                    PIP_MB_SKIP_FLAG, 0, sl->slice_type_nos, 0);
+            }
             sl->mb_skip_run = get_ue_golomb_long(&sl->gb);
+            if (h->avctx->hooks) {
+                h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_SKIP_FLAG);
+            }
+        }
 
         if (sl->mb_skip_run--) {
             if (FRAME_MBAFF(h) && (sl->mb_y & 1) == 0) {
