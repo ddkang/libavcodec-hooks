@@ -749,7 +749,13 @@ int ff_h264_decode_mb_cavlc(const H264Context *h, H264SliceContext *sl)
 
     sl->prev_mb_skipped = 0;
 
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_INTRA_MB_TYPE, 0, sl->slice_type_nos, 0);
+    }
     mb_type= get_ue_golomb(&sl->gb);
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_INTRA_MB_TYPE);
+    }
     if (sl->slice_type_nos == AV_PICTURE_TYPE_B) {
         if(mb_type < 23){
             partition_count= b_mb_type_info[mb_type].partition_count;
