@@ -1208,7 +1208,14 @@ decode_intra_mb:
             scan    = sl->qscale ? h->zigzag_scan : h->zigzag_scan_q0;
         }
 
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_QUANT_DELTA, 0, 0, 0);
+        }
         dquant= get_se_golomb(&sl->gb);
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_QUANT_DELTA);
+        }
 
         sl->qscale += dquant;
 
