@@ -817,6 +817,10 @@ decode_intra_mb:
 //                fill_intra4x4_pred_table(h);
             for(i=0; i<16; i+=di){
                 int mode = pred_intra_mode(h, sl, i);
+                if (h->avctx->hooks) {
+                    h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+                    h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_INTRA4X4_PRED_MODE, 0, mode, i);
+                }
 
                 if(!get_bits1(&sl->gb)){
                     const int rem_mode= get_bits(&sl->gb, 3);
@@ -827,6 +831,10 @@ decode_intra_mb:
                     fill_rectangle(&sl->intra4x4_pred_mode_cache[ scan8[i] ], 2, 2, 8, mode, 1);
                 else
                     sl->intra4x4_pred_mode_cache[scan8[i]] = mode;
+
+                if (h->avctx->hooks) {
+                    h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_INTRA4X4_PRED_MODE);
+                }
             }
             write_back_intra_pred_mode(h, sl);
             if (ff_h264_check_intra4x4_pred_mode(h, sl) < 0)
