@@ -859,7 +859,16 @@ decode_intra_mb:
                 return -1;
         }
         if(decode_chroma){
-            pred_mode= ff_h264_check_intra_pred_mode(h, sl, get_ue_golomb_31(&sl->gb), 1);
+            int chroma_pred_mode_base;
+            if (h->avctx->hooks) {
+                h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+                h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_CHROMA_PRED_MODE, 0, 0, 0);
+            }
+            chroma_pred_mode_base = get_ue_golomb_31(&sl->gb);
+            if (h->avctx->hooks) {
+                h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_CHROMA_PRED_MODE);
+            }
+            pred_mode= ff_h264_check_intra_pred_mode(h, sl, chroma_pred_mode_base, 1);
             if(pred_mode < 0)
                 return -1;
             sl->chroma_pred_mode = pred_mode;

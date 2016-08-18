@@ -24,7 +24,8 @@
     fn(PIP_P_MB_SUB_TYPE) \
     fn(PIP_B_MB_SUB_TYPE) \
     fn(PIP_MB_REF) \
-    fn(PIP_CODED_BLOCK)
+    fn(PIP_CODED_BLOCK) \
+    fn(PIP_CHROMA_PRED_MODE)
 
 #define ITEM_COMMA(a) a,
 
