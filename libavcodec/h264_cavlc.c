@@ -880,7 +880,13 @@ decode_intra_mb:
 
         if (sl->slice_type_nos == AV_PICTURE_TYPE_B) {
             for(i=0; i<4; i++){
+                if (h->avctx->hooks) {
+                    h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_B_MB_SUB_TYPE, 0, i, 0);
+                }
                 sl->sub_mb_type[i]= get_ue_golomb_31(&sl->gb);
+                if (h->avctx->hooks) {
+                    h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_B_MB_SUB_TYPE);
+                }
                 if(sl->sub_mb_type[i] >=13){
                     av_log(h->avctx, AV_LOG_ERROR, "B sub_mb_type %u out of range at %d %d\n", sl->sub_mb_type[i], sl->mb_x, sl->mb_y);
                     return -1;
@@ -898,7 +904,13 @@ decode_intra_mb:
         }else{
             av_assert2(sl->slice_type_nos == AV_PICTURE_TYPE_P); //FIXME SP correct ?
             for(i=0; i<4; i++){
+                if (h->avctx->hooks) {
+                    h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_P_MB_SUB_TYPE, 0, i, 0);
+                }
                 sl->sub_mb_type[i]= get_ue_golomb_31(&sl->gb);
+                if (h->avctx->hooks) {
+                    h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_P_MB_SUB_TYPE);
+                }
                 if(sl->sub_mb_type[i] >=4){
                     av_log(h->avctx, AV_LOG_ERROR, "P sub_mb_type %u out of range at %d %d\n", sl->sub_mb_type[i], sl->mb_x, sl->mb_y);
                     return -1;
