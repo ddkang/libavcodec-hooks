@@ -922,8 +922,19 @@ decode_intra_mb:
                         const int index= 4*i + block_width*j;
                         int16_t (* mv_cache)[2]= &sl->mv_cache[list][ scan8[index] ];
                         pred_motion(h, sl, index, block_width, list, sl->ref_cache[list][ scan8[index] ], &mx, &my);
+                        if (h->avctx->hooks) {
+                            h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+                            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD, 0, index, 0);
+                        }
                         mx += get_se_golomb(&sl->gb);
+                        if (h->avctx->hooks) {
+                            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD);
+                            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD, 0, index, 1);
+                        }
                         my += get_se_golomb(&sl->gb);
+                        if (h->avctx->hooks) {
+                            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD);
+                        }
                         ff_tlog(h->avctx, "final mv:%d %d\n", mx, my);
 
                         if(IS_SUB_8X8(sub_mb_type)){
@@ -976,8 +987,19 @@ decode_intra_mb:
             for (list = 0; list < sl->list_count; list++) {
                 if(IS_DIR(mb_type, 0, list)){
                     pred_motion(h, sl, 0, 4, list, sl->ref_cache[list][ scan8[0] ], &mx, &my);
+                    if (h->avctx->hooks) {
+                        h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+                        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD, 0, 0, 0);
+                    }
                     mx += get_se_golomb(&sl->gb);
+                    if (h->avctx->hooks) {
+                        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD);
+                        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD, 0, 0, 1);
+                    }
                     my += get_se_golomb(&sl->gb);
+                    if (h->avctx->hooks) {
+                        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD);
+                    }
                     ff_tlog(h->avctx, "final mv:%d %d\n", mx, my);
 
                     fill_rectangle(sl->mv_cache[list][ scan8[0] ], 4, 4, 8, pack16to32(mx,my), 4);
@@ -1011,8 +1033,19 @@ decode_intra_mb:
                     unsigned int val;
                     if(IS_DIR(mb_type, i, list)){
                         pred_16x8_motion(h, sl, 8*i, list, sl->ref_cache[list][scan8[0] + 16*i], &mx, &my);
+                        if (h->avctx->hooks) {
+                            h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+                            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD, 0, i * 8, 0);
+                        }
                         mx += get_se_golomb(&sl->gb);
+                        if (h->avctx->hooks) {
+                            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD);
+                            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD, 0, i * 8, 1);
+                        }
                         my += get_se_golomb(&sl->gb);
+                        if (h->avctx->hooks) {
+                            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD);
+                        }
                         ff_tlog(h->avctx, "final mv:%d %d\n", mx, my);
 
                         val= pack16to32(mx,my);
@@ -1049,8 +1082,19 @@ decode_intra_mb:
                     unsigned int val;
                     if(IS_DIR(mb_type, i, list)){
                         pred_8x16_motion(h, sl, i*4, list, sl->ref_cache[list][ scan8[0] + 2*i ], &mx, &my);
+                        if (h->avctx->hooks) {
+                            h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+                            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD, 0, i * 4, 0);
+                        }
                         mx += get_se_golomb(&sl->gb);
+                        if (h->avctx->hooks) {
+                            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD);
+                            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD, 0, i * 4, 1);
+                        }
                         my += get_se_golomb(&sl->gb);
+                        if (h->avctx->hooks) {
+                            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_MVD);
+                        }
                         ff_tlog(h->avctx, "final mv:%d %d\n", mx, my);
 
                         val= pack16to32(mx,my);
