@@ -1118,7 +1118,15 @@ decode_intra_mb:
         write_back_motion(h, sl, mb_type);
 
     if(!IS_INTRA16x16(mb_type)){
+        // This is actually both the chroma and luma as is.
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.set_mb_type(h->avctx->hooks->opaque, mb_type);
+            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_CBP_LUMA, 0, decode_chroma, 0);
+        }
         cbp= get_ue_golomb(&sl->gb);
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_CBP_LUMA);
+        }
 
         if(decode_chroma){
             if(cbp > 47){
