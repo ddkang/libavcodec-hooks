@@ -1447,7 +1447,7 @@ static int decode_cabac_mb_chroma_pre_mode(const H264Context *h, H264SliceContex
     if (h->avctx->hooks) {
         const int mba_xy = sl->left_mb_xy[0];
         const int mbb_xy = sl->top_mb_xy;
-        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_CHROMA_PRE_MODE,
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_MB_CHROMA_PRED_MODE,
                                                        0,
                                                        h->chroma_pred_mode_table[mba_xy],
                                                        h->chroma_pred_mode_table[mbb_xy]);
@@ -1456,7 +1456,7 @@ static int decode_cabac_mb_chroma_pre_mode(const H264Context *h, H264SliceContex
     ret = decode_cabac_mb_chroma_pre_mode_helper(h, sl);
 
     if (h->avctx->hooks) {
-        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_CHROMA_PRE_MODE);
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_MB_CHROMA_PRED_MODE);
     }
 
     return ret;

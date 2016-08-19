@@ -19,13 +19,12 @@
     fn(PIP_MB_CBP_LUMA) \
     fn(PIP_MB_MVD) \
     fn(PIP_MB_SKIP_FLAG) \
-    fn(PIP_MB_CHROMA_PRE_MODE) \
+    fn(PIP_MB_CHROMA_PRED_MODE) \
     fn(PIP_MB_CBP_CHROMA) \
     fn(PIP_P_MB_SUB_TYPE) \
     fn(PIP_B_MB_SUB_TYPE) \
     fn(PIP_MB_REF) \
     fn(PIP_CODED_BLOCK) \
-    fn(PIP_CHROMA_PRED_MODE) \
     fn(PIP_QUANT_DELTA) \
     /* This is for bookkeeping -- want to see how many bits each take */ \
     fn(PIP_COEFF_TOKEN) \
