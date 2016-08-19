@@ -26,7 +26,18 @@
     fn(PIP_MB_REF) \
     fn(PIP_CODED_BLOCK) \
     fn(PIP_CHROMA_PRED_MODE) \
-    fn(PIP_QUANT_DELTA)
+    fn(PIP_QUANT_DELTA) \
+    /* This is for bookkeeping -- want to see how many bits each take */ \
+    fn(PIP_COEFF_TOKEN) \
+    fn(PIP_COEFF_TOKEN_CHROMA) \
+    fn(PIP_LEVEL_SETUP) \
+    fn(PIP_FIRST_LEVEL) \
+    fn(PIP_FIRST_LEVEL_CODE) \
+    fn(PIP_REMAINING_LEVEL_CODE) \
+    fn(PIP_REMAINING_LEVEL) \
+    fn(PIP_ZEROS_LEFT) \
+    fn(PIP_RUN_BEFORE)
+
 
 #define ITEM_COMMA(a) a,
 

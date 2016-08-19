@@ -448,16 +448,32 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
         }
         h->avctx->hooks->model_hooks.begin_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, is_dc, 0);
     }
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_RESIDUALS, 0, 0, 0);
+    }
 
     //FIXME put trailing_onex into the context
 
     if(max_coeff <= 8){
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_COEFF_TOKEN_CHROMA, 0, 0, 0);
+        }
         if (max_coeff == 4)
             coeff_token = get_vlc2(gb, chroma_dc_coeff_token_vlc.table, CHROMA_DC_COEFF_TOKEN_VLC_BITS, 1);
         else
             coeff_token = get_vlc2(gb, chroma422_dc_coeff_token_vlc.table, CHROMA422_DC_COEFF_TOKEN_VLC_BITS, 1);
         total_coeff= coeff_token>>2;
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_COEFF_TOKEN_CHROMA);
+        }
     }else{
+        if (h->avctx->hooks) {
+            if (n >= LUMA_DC_BLOCK_INDEX)
+                total_coeff= pred_non_zero_count(h, sl, (n - LUMA_DC_BLOCK_INDEX)*16);
+            else
+                total_coeff= pred_non_zero_count(h, sl, n);
+            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_COEFF_TOKEN, 0, total_coeff, 0);
+        }
         if(n >= LUMA_DC_BLOCK_INDEX){
             total_coeff= pred_non_zero_count(h, sl, (n - LUMA_DC_BLOCK_INDEX)*16);
             coeff_token= get_vlc2(gb, coeff_token_vlc[ coeff_token_table_index[total_coeff] ].table, COEFF_TOKEN_VLC_BITS, 2);
@@ -466,6 +482,9 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
             total_coeff= pred_non_zero_count(h, sl, n);
             coeff_token= get_vlc2(gb, coeff_token_vlc[ coeff_token_table_index[total_coeff] ].table, COEFF_TOKEN_VLC_BITS, 2);
             total_coeff= coeff_token>>2;
+        }
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_COEFF_TOKEN);
         }
     }
     sl->non_zero_count_cache[scan8[n]] = total_coeff;
@@ -483,19 +502,35 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
     ff_tlog(h->avctx, "trailing:%d, total:%d\n", trailing_ones, total_coeff);
     av_assert2(total_coeff<=16);
 
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_LEVEL_SETUP, 0, trailing_ones, 0);
+    }
     i = show_bits(gb, trailing_ones) << (3 - trailing_ones);
     skip_bits(gb, trailing_ones);
     level[0] = 1-((i&4)>>1);
     level[1] = 1-((i&2)   );
     level[2] = 1-((i&1)<<1);
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_LEVEL_SETUP);
+    }
 
     if(trailing_ones<total_coeff) {
         int mask, prefix;
         int suffix_length = total_coeff > 10 & trailing_ones < 3;
-        int bitsi= recode_show_bits(gb, cavlc_level_tab[suffix_length], LEVEL_TAB_BITS);
-        int level_code= cavlc_level_tab[suffix_length][bitsi][0];
+        int bitsi, level_code;
 
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque,
+                PIP_FIRST_LEVEL_CODE, suffix_length, total_coeff, trailing_ones);
+        }
+        bitsi= recode_show_bits(gb, cavlc_level_tab[suffix_length], LEVEL_TAB_BITS);
+        level_code= cavlc_level_tab[suffix_length][bitsi][0];
         skip_bits(gb, cavlc_level_tab[suffix_length][bitsi][1]);
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_FIRST_LEVEL_CODE);
+            h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_FIRST_LEVEL, 0, 0, 0);
+        }
+
         if(level_code >= 100){
             prefix= level_code - 100;
             if(prefix == LEVEL_TAB_BITS)
@@ -535,14 +570,27 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
             suffix_length = 1 + (level_code + 3U > 6U);
             level[trailing_ones]= level_code;
         }
+        if (h->avctx->hooks) {
+            h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_FIRST_LEVEL);
+        }
 
         //remaining coefficients have suffix_length > 0
         for(i=trailing_ones+1;i<total_coeff;i++) {
             static const unsigned int suffix_limit[7] = {0,3,6,12,24,48,INT_MAX };
-            int bitsi= recode_show_bits(gb, cavlc_level_tab[suffix_length], LEVEL_TAB_BITS);
-            level_code= cavlc_level_tab[suffix_length][bitsi][0];
+            int bitsi;
 
+            if (h->avctx->hooks) {
+                h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque,
+                    PIP_REMAINING_LEVEL_CODE, 0, i, suffix_length);
+            }
+            bitsi= recode_show_bits(gb, cavlc_level_tab[suffix_length], LEVEL_TAB_BITS);
+            level_code= cavlc_level_tab[suffix_length][bitsi][0];
             skip_bits(gb, cavlc_level_tab[suffix_length][bitsi][1]);
+            if (h->avctx->hooks) {
+                h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_REMAINING_LEVEL_CODE);
+                h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_REMAINING_LEVEL, 0, i, 0);
+            }
+
             if(level_code >= 100){
                 prefix= level_code - 100;
                 if(prefix == LEVEL_TAB_BITS){
@@ -566,9 +614,16 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
             }
             level[i]= level_code;
             suffix_length+= suffix_limit[suffix_length] + level_code > 2U*suffix_limit[suffix_length];
+
+            if (h->avctx->hooks) {
+                h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_REMAINING_LEVEL);
+            }
         }
     }
 
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_ZEROS_LEFT, 0, total_coeff, 0);
+    }
     if(total_coeff == max_coeff)
         zeros_left=0;
     else{
@@ -583,12 +638,18 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
             zeros_left= get_vlc2(gb, (total_zeros_vlc-1)[ total_coeff ].table, TOTAL_ZEROS_VLC_BITS, 1);
         }
     }
+    if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_ZEROS_LEFT);
+    }
 
 #define STORE_BLOCK(type) \
     scantable += zeros_left + total_coeff - 1; \
     if(n >= LUMA_DC_BLOCK_INDEX){ \
         ((type*)block)[*scantable] = level[0]; \
         for(i=1;i<total_coeff && zeros_left > 0;i++) { \
+            if (h->avctx->hooks) { \
+                h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_RUN_BEFORE, 0, zeros_left, i);\
+            } \
             if(zeros_left < 7) \
                 run_before= get_vlc2(gb, (run_vlc-1)[zeros_left].table, RUN_VLC_BITS, 1); \
             else \
@@ -596,6 +657,9 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
             zeros_left -= run_before; \
             scantable -= 1 + run_before; \
             ((type*)block)[*scantable]= level[i]; \
+            if (h->avctx->hooks) { \
+                h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_RUN_BEFORE);\
+            } \
         } \
         for(;i<total_coeff;i++) { \
             scantable--; \
@@ -604,6 +668,9 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
     }else{ \
         ((type*)block)[*scantable] = ((int)(level[0] * qmul[*scantable] + 32))>>6; \
         for(i=1;i<total_coeff && zeros_left > 0;i++) { \
+            if (h->avctx->hooks) { \
+                h->avctx->hooks->model_hooks.begin_coding_type(h->avctx->hooks->opaque, PIP_RUN_BEFORE, 0, zeros_left, i);\
+            } \
             if(zeros_left < 7) \
                 run_before= get_vlc2(gb, (run_vlc-1)[zeros_left].table, RUN_VLC_BITS, 1); \
             else \
@@ -611,6 +678,9 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
             zeros_left -= run_before; \
             scantable -= 1 + run_before; \
             ((type*)block)[*scantable]= ((int)(level[i] * qmul[*scantable] + 32))>>6; \
+            if (h->avctx->hooks) { \
+                h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_RUN_BEFORE);\
+            } \
         } \
         for(;i<total_coeff;i++) { \
             scantable--; \
@@ -630,6 +700,7 @@ static int decode_residual(const H264Context *h, H264SliceContext *sl,
     }
 
     if (h->avctx->hooks) {
+        h->avctx->hooks->model_hooks.end_coding_type(h->avctx->hooks->opaque, PIP_RESIDUALS);
         h->avctx->hooks->model_hooks.end_sub_mb(h->avctx->hooks->opaque, cat, n, max_coeff, is_dc, 0);
     }
 
